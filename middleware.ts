@@ -35,26 +35,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role-based route protection
-  // Full session/role validation happens again in each API route — this is a
-  // fast edge check to redirect unauthenticated users and catch obvious role mismatches.
-  // The actual role is stored in the session JWT / cookie payload via Better Auth.
+  // Role-based route protection (fast edge check only).
+  // sd_role is set by /api/auth/finalize after login.
+  // If the cookie isn't present yet (e.g. first request after OAuth), allow through —
+  // each API/page handler does its own server-side auth via requireSession().
   const role = request.cookies.get("sd_role")?.value;
 
-  if (pathname.startsWith("/admin") && role !== "platform_admin") {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (pathname.startsWith("/brand") && role !== "brand_admin" && role !== "platform_admin") {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (
-    pathname.startsWith("/app") &&
-    role !== "customer" &&
-    role !== "platform_admin"
-  ) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (role) {
+    if (pathname.startsWith("/admin") && role !== "platform_admin") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (pathname.startsWith("/brand") && role !== "brand_admin" && role !== "platform_admin") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (pathname.startsWith("/app") && role !== "customer" && role !== "platform_admin") {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   return NextResponse.next();
