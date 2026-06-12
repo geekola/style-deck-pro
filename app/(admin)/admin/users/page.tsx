@@ -2,7 +2,7 @@ import { requirePlatformAdminPage } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { users, customers } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { UserActions } from "./user-actions";
+import { UserRow } from "./user-row";
 
 export default async function AdminUsersPage() {
   await requirePlatformAdminPage();
@@ -40,46 +40,19 @@ export default async function AdminUsersPage() {
         </thead>
         <tbody className="divide-y">
           {rows.map((u) => (
-            <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
-              <td className="py-3">
-                <div className="font-medium">{u.name}</div>
-                <div className="text-xs text-gray-400 dark:text-gray-500">{u.email}</div>
-              </td>
-              <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{u.role.replace("_", " ")}</td>
-              <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{u.customerType ?? "—"}</td>
-              <td className="py-3">
-                {u.customerStatus ? (
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      u.customerStatus === "active"
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                    }`}
-                  >
-                    {u.customerStatus}
-                  </span>
-                ) : (
-                  <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>
-                )}
-              </td>
-              <td className="py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">
-                {new Date(u.createdAt).toLocaleDateString()}
-              </td>
-              <td className="py-3 text-right">
-                {u.role === "customer" && u.customerStatus && (
-                  <UserActions
-                    userId={u.id}
-                    currentStatus={u.customerStatus}
-                    profile={{
-                      name: u.name,
-                      email: u.email,
-                      customerType: u.customerType ?? "performer",
-                      customerIndustry: u.customerIndustry ?? "other",
-                    }}
-                  />
-                )}
-              </td>
-            </tr>
+            <UserRow
+              key={u.id}
+              user={{
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                customerType: u.customerType,
+                customerIndustry: u.customerIndustry,
+                customerStatus: u.customerStatus,
+                joinedDate: new Date(u.createdAt).toLocaleDateString(),
+              }}
+            />
           ))}
         </tbody>
       </table>

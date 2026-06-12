@@ -9,6 +9,7 @@ import {
   changePassword,
 } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { COUNTRIES } from "@/components/country-select";
 
 const CUSTOMER_TYPES: { value: string; label: string }[] = [
   { value: "actor", label: "Actor" },
@@ -27,6 +28,49 @@ const INDUSTRIES: { value: string; label: string }[] = [
   { value: "technology", label: "Technology" },
   { value: "other", label: "Other" },
 ];
+
+type Contact = {
+  id: string;
+  name: string;
+  role: string | null;
+  email: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  country: string | null;
+};
+
+type ContactForm = {
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+const emptyContactForm: ContactForm = {
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  country: "",
+};
+
+const inputClass =
+  "w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";
 
 export default function AccountPage() {
   const { data: session, isPending } = useSession();
@@ -57,6 +101,14 @@ export default function AccountPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
+  // Additional contacts
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoaded, setContactsLoaded] = useState(false);
+  const [contactForm, setContactForm] = useState<ContactForm | null>(null);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [contactSaving, setContactSaving] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+
   useEffect(() => {
     if (session?.user) {
       setName(session.user.name ?? "");
@@ -73,6 +125,16 @@ export default function AccountPage() {
         setProfileLoaded(true);
       })
       .catch(() => setProfileLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/customer/contacts")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setContacts(data);
+        setContactsLoaded(true);
+      })
+      .catch(() => setContactsLoaded(true));
   }, []);
 
   async function handleSaveName() {
@@ -145,6 +207,78 @@ export default function AccountPage() {
     setProfileSaving(false);
     setProfileSaved(true);
     setTimeout(() => setProfileSaved(false), 2000);
+  }
+
+  function openAddContact() {
+    setEditingContactId(null);
+    setContactForm({ ...emptyContactForm });
+    setContactError(null);
+  }
+
+  function openEditContact(c: Contact) {
+    setEditingContactId(c.id);
+    setContactForm({
+      name: c.name,
+      role: c.role ?? "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      addressLine1: c.addressLine1 ?? "",
+      addressLine2: c.addressLine2 ?? "",
+      city: c.city ?? "",
+      state: c.state ?? "",
+      postalCode: c.postalCode ?? "",
+      country: c.country ?? "",
+    });
+    setContactError(null);
+  }
+
+  function closeContactForm() {
+    setContactForm(null);
+    setEditingContactId(null);
+    setContactError(null);
+  }
+
+  async function handleSaveContact() {
+    if (!contactForm) return;
+    if (!contactForm.name.trim()) {
+      setContactError("Name is required.");
+      return;
+    }
+
+    setContactSaving(true);
+    setContactError(null);
+
+    const url = editingContactId
+      ? `/api/customer/contacts/${editingContactId}`
+      : "/api/customer/contacts";
+    const method = editingContactId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(contactForm),
+    });
+
+    setContactSaving(false);
+
+    if (!res.ok) {
+      setContactError("Could not save contact.");
+      return;
+    }
+
+    const saved: Contact = await res.json();
+    setContacts((prev) =>
+      editingContactId ? prev.map((c) => (c.id === saved.id ? saved : c)) : [...prev, saved]
+    );
+    closeContactForm();
+  }
+
+  async function handleDeleteContact(id: string) {
+    if (!confirm("Remove this contact?")) return;
+    const res = await fetch(`/api/customer/contacts/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setContacts((prev) => prev.filter((c) => c.id !== id));
+    }
   }
 
   if (isPending || !profileLoaded) {
@@ -295,6 +429,211 @@ export default function AccountPage() {
               {profileSaved ? "Saved &#10003;" : profileSaving ? "Saving..." : "Save profile"}
             </button>
           </div>
+        </section>
+
+        {/* Additional contacts */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Additional contacts
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            Add an assistant, agent, or manager who can be reached on your behalf.
+          </p>
+
+          {!contactsLoaded ? (
+            <p className="text-xs text-gray-400">Loading...</p>
+          ) : (
+            <div className="space-y-3">
+              {contacts.length === 0 && !contactForm && (
+                <p className="text-xs text-gray-400">No additional contacts yet.</p>
+              )}
+
+              {contacts.map((c) => (
+                <div key={c.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</p>
+                      {c.role && <p className="text-xs text-gray-400 mt-0.5">{c.role}</p>}
+                      {(c.email || c.phone) && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {[c.email, c.phone].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      {(c.addressLine1 || c.city) && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {[c.addressLine1, c.addressLine2, c.city, c.state, c.postalCode, c.country]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-3 text-xs shrink-0">
+                      <button
+                        onClick={() => openEditContact(c)}
+                        className="text-gray-500 hover:text-black dark:hover:text-white"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteContact(c.id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {contactForm ? (
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.name}
+                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Role (e.g. Assistant, Agent, Manager)
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.role}
+                        onChange={(e) => setContactForm({ ...contactForm, role: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={contactForm.phone}
+                        onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Address line 1
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.addressLine1}
+                        onChange={(e) => setContactForm({ ...contactForm, addressLine1: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Address line 2
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.addressLine2}
+                        onChange={(e) => setContactForm({ ...contactForm, addressLine2: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.city}
+                        onChange={(e) => setContactForm({ ...contactForm, city: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        State / Province
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.state}
+                        onChange={(e) => setContactForm({ ...contactForm, state: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Postal code
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.postalCode}
+                        onChange={(e) => setContactForm({ ...contactForm, postalCode: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Country
+                      </label>
+                      <select
+                        value={contactForm.country}
+                        onChange={(e) => setContactForm({ ...contactForm, country: e.target.value })}
+                        className={inputClass}
+                      >
+                        <option value="">Select...</option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {contactError && <p className="text-xs text-red-500">{contactError}</p>}
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveContact}
+                      disabled={contactSaving}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      {contactSaving ? "Saving..." : editingContactId ? "Save changes" : "Add contact"}
+                    </button>
+                    <button
+                      onClick={closeContactForm}
+                      className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={openAddContact}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  + Add contact
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Password */}

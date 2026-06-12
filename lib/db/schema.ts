@@ -238,6 +238,32 @@ export const measurements = pgTable("measurements", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// --- Customer Contacts -----------------------------------------------------------
+// Secondary contacts (assistant, agent, manager, etc.) for a customer. Visible to
+// the customer and platform admins only -- never exposed to brands.
+
+export const customerContacts = pgTable(
+  "customer_contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    role: text("role"), // free text, e.g. "Assistant", "Agent", "Manager"
+    email: text("email"),
+    phone: text("phone"),
+    addressLine1: text("address_line1"),
+    addressLine2: text("address_line2"),
+    city: text("city"),
+    state: text("state"),
+    postalCode: text("postal_code"),
+    country: text("country"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("customer_contacts_customer_id_idx").on(t.customerId)]
+);
+
 // --- Products ------------------------------------------------------------------
 
 export const products = pgTable(
@@ -449,6 +475,11 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   swipeEvents: many(swipeEvents),
   savedProducts: many(savedProducts),
   orders: many(orders),
+  contacts: many(customerContacts),
+}));
+
+export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
+  customer: one(customers, { fields: [customerContacts.customerId], references: [customers.id] }),
 }));
 
 export const brandsRelations = relations(brands, ({ many }) => ({
