@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     | "formal"
     | "custom"
     | null;
+  const itemType = searchParams.get("itemType") as "gift" | "purchase" | null;
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 50);
 
   // Get customer record
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
     eq(brands.status, "approved"),
     accessCondition!,
     ...(category ? [eq(products.category, category)] : []),
+    ...(itemType ? [eq(products.itemType, itemType)] : []),
     ...(swipedIds.length > 0 ? [notInArray(products.id, swipedIds)] : []),
   ];
 

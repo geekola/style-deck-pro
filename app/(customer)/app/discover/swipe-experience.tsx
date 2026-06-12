@@ -260,17 +260,29 @@ export function SwipeExperience({
   hasMeasurements: boolean;
 }) {
   const [category, setCategory] = useState<Category | null>(null);
+  const [itemType, setItemType] = useState<"gift" | "purchase" | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  async function loadProducts(cat: Category, type: "gift" | "purchase" | null) {
+    setLoading(true);
+    const params = new URLSearchParams({ category: cat, limit: "20" });
+    if (type) params.set("itemType", type);
+    const res = await fetch(`/api/customer/products?${params.toString()}`);
+    if (res.ok) setProducts(await res.json());
+    setLoading(false);
+  }
+
   async function loadCategory(cat: Category) {
     setCategory(cat);
     setDropdownOpen(false);
-    setLoading(true);
-    const res = await fetch(`/api/customer/products?category=${cat}&limit=20`);
-    if (res.ok) setProducts(await res.json());
-    setLoading(false);
+    await loadProducts(cat, itemType);
+  }
+
+  async function setOfferFilter(type: "gift" | "purchase" | null) {
+    setItemType(type);
+    if (category) await loadProducts(category, type);
   }
 
   function handleSwipe(productId: string, direction: "left" | "right") {
@@ -361,6 +373,32 @@ export function SwipeExperience({
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Offer type filter */}
+      <div className="px-5 pb-2">
+        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Offer Type</p>
+        <div className="flex items-center gap-2">
+          {(
+            [
+              { label: "All", value: null },
+              { label: "Gift", value: "gift" as const },
+              { label: "Purchase", value: "purchase" as const },
+            ]
+          ).map((opt) => (
+            <button
+              key={opt.label}
+              onClick={() => setOfferFilter(opt.value)}
+              className={`text-sm px-3.5 py-1.5 rounded-full border transition-colors ${
+                itemType === opt.value
+                  ? "bg-black dark:bg-white dark:text-black text-white border-black dark:border-white"
+                  : "border-black/12 dark:border-white/15 hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
