@@ -40,7 +40,7 @@ export default async function BrandOrdersPage() {
       ) : (
         <>
           {pending.length > 0 && (
-            <section className="mb-10">
+            <section id="needs-shipping" className="mb-10">
               <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">
                 Needs shipping ({pending.length})
               </h2>

@@ -20,9 +20,9 @@ export default async function BrandDashboardPage() {
       <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 capitalize mb-10">{brand?.category} · {brand?.accessPolicy?.replace("_", " ")} access</p>
 
       <div className="grid grid-cols-3 gap-4 mb-10">
-        <Stat label="Active products" value={activeProducts} />
-        <Stat label="Total products" value={products.length} />
-        <Stat label="Pending orders" value={pendingOrders} />
+        <Stat label="Active products" value={activeProducts} href="/brand/products" />
+        <Stat label="Total products" value={products.length} href="/brand/products" />
+        <Stat label="Pending orders" value={pendingOrders} href="/brand/orders#needs-shipping" />
       </div>
 
       <nav className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -45,11 +45,14 @@ export default async function BrandDashboardPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+    <Link
+      href={href}
+      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors block"
+    >
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{label}</div>
-    </div>
+    </Link>
   );
 }
