@@ -24,6 +24,12 @@ export default function BrandGiftingPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editPeriodType, setEditPeriodType] = useState<"rolling" | "calendar">("rolling");
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function load() {
     const [allowanceRes, customerRes] = await Promise.all([
@@ -46,6 +52,49 @@ export default function BrandGiftingPage() {
     });
     await load();
     setResetting(null);
+  }
+
+  async function handleRemove(id: string) {
+    if (!confirm("Remove this gifting allowance? The customer will no longer be able to use it.")) return;
+    setRemoving(id);
+    await fetch(`/api/brand/gifting/${id}`, { method: "DELETE" });
+    await load();
+    setRemoving(null);
+  }
+
+  function startEdit(a: Allowance) {
+    setEditingId(a.id);
+    setEditAmount((a.amountCents / 100).toString());
+    setEditPeriodType(a.periodType);
+    setEditError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditError(null);
+  }
+
+  async function handleSaveEdit(id: string) {
+    const amountCents = Math.round(parseFloat(editAmount) * 100);
+    if (!amountCents || amountCents <= 0) {
+      setEditError("Enter an amount greater than $0.");
+      return;
+    }
+    setSaving(true);
+    setEditError(null);
+    const res = await fetch(`/api/brand/gifting/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountCents, periodType: editPeriodType }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEditError(data.error ?? "Something went wrong.");
+      return;
+    }
+    setEditingId(null);
+    await load();
   }
 
   function pct(used: number, total: number) {
@@ -82,6 +131,8 @@ export default function BrandGiftingPage() {
             const remaining = total - used;
             const p = pct(a.usedCents, a.amountCents);
 
+            const isEditing = editingId === a.id;
+
             return (
               <div key={a.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -91,30 +142,91 @@ export default function BrandGiftingPage() {
                       {a.periodType} period
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleReset(a.id)}
-                    disabled={resetting === a.id}
-                    className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white border border-gray-200 dark:border-gray-700 rounded px-2 py-1"
-                  >
-                    {resetting === a.id ? "Resetting..." : "Reset usage"}
-                  </button>
+                  <div className="flex gap-2 shrink-0">
+                    {!isEditing && (
+                      <button
+                        onClick={() => startEdit(a)}
+                        className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white border border-gray-200 dark:border-gray-700 rounded px-2 py-1"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleReset(a.id)}
+                      disabled={resetting === a.id}
+                      className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white border border-gray-200 dark:border-gray-700 rounded px-2 py-1"
+                    >
+                      {resetting === a.id ? "Resetting..." : "Reset usage"}
+                    </button>
+                    <button
+                      onClick={() => handleRemove(a.id)}
+                      disabled={removing === a.id}
+                      className="text-xs text-red-600 hover:text-red-700 border border-red-200 rounded px-2 py-1 disabled:opacity-50"
+                    >
+                      {removing === a.id ? "Removing..." : "Remove"}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm mb-2">
-                  <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                    ${used.toFixed(2)} used of ${total.toFixed(2)}
-                  </span>
-                  <span className="font-medium text-green-700 dark:text-green-400">
-                    ${remaining.toFixed(2)} remaining
-                  </span>
-                </div>
+                {isEditing ? (
+                  <div className="flex flex-wrap items-end gap-3 mb-3">
+                    <div className="w-32">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1.5">Amount ($)</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                      />
+                    </div>
+                    <div className="w-36">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1.5">Period</label>
+                      <select
+                        value={editPeriodType}
+                        onChange={(e) => setEditPeriodType(e.target.value as "rolling" | "calendar")}
+                        className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                      >
+                        <option value="rolling">Rolling</option>
+                        <option value="calendar">Calendar</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => handleSaveEdit(a.id)}
+                      disabled={saving}
+                      className="bg-black dark:bg-white dark:text-black text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={saving}
+                      className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white px-2 py-2"
+                    >
+                      Cancel
+                    </button>
+                    {editError && <p className="text-sm text-red-600 w-full">{editError}</p>}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 text-sm mb-2">
+                      <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        ${used.toFixed(2)} used of ${total.toFixed(2)}
+                      </span>
+                      <span className="font-medium text-green-700 dark:text-green-400">
+                        ${remaining.toFixed(2)} remaining
+                      </span>
+                    </div>
 
-                <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-black dark:bg-white dark:text-black rounded-full transition-all"
-                    style={{ width: `${p}%` }}
-                  />
-                </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-black dark:bg-white dark:text-black rounded-full transition-all"
+                        style={{ width: `${p}%` }}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}

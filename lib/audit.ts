@@ -55,6 +55,8 @@ export const AuditAction = {
   // Gifting
   GIFTING_ALLOWANCE_SET: "gifting.allowance_set",
   GIFTING_ALLOWANCE_RESET: "gifting.allowance_reset",
+  GIFTING_ALLOWANCE_UPDATED: "gifting.allowance_updated",
+  GIFTING_ALLOWANCE_REMOVED: "gifting.allowance_removed",
   // Invites
   INVITE_CREATED: "invite.created",
   INVITE_ACCEPTED: "invite.accepted",

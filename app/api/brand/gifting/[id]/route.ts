@@ -53,7 +53,7 @@ export async function PUT(
     actorId: session.user.id,
     action: parsed.data.reset
       ? AuditAction.GIFTING_ALLOWANCE_RESET
-      : AuditAction.GIFTING_ALLOWANCE_SET,
+      : AuditAction.GIFTING_ALLOWANCE_UPDATED,
     entityType: "gifting_allowance",
     entityId: id,
     metadata: updates,
@@ -61,4 +61,38 @@ export async function PUT(
   });
 
   return NextResponse.json({ id });
+}
+
+// DELETE /api/brand/gifting/[id]
+// Removes a gifting allowance entirely (does not revoke brand access that
+// may have been granted alongside it).
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { session, brandId } = await requireBrandAdmin();
+  const { id } = await params;
+
+  const [allowance] = await db
+    .select()
+    .from(giftingAllowances)
+    .where(and(eq(giftingAllowances.id, id), eq(giftingAllowances.brandId, brandId)))
+    .limit(1);
+
+  if (!allowance) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await db
+    .delete(giftingAllowances)
+    .where(and(eq(giftingAllowances.id, id), eq(giftingAllowances.brandId, brandId)));
+
+  await audit({
+    actorId: session.user.id,
+    action: AuditAction.GIFTING_ALLOWANCE_REMOVED,
+    entityType: "gifting_allowance",
+    entityId: id,
+    metadata: { customerId: allowance.customerId },
+    ip: request.headers.get("x-forwarded-for") ?? undefined,
+  });
+
+  return NextResponse.json({ ok: true });
 }
