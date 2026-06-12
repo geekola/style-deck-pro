@@ -41,3 +41,10 @@ next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+01 Daily Logs
+
+# source files
+ARCHITECTURE.md
+CLAUDE.md
+fashion-swipe-app.jsx
+styledeck-brand-portal.jsx
