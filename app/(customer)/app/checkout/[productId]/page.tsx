@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { CountrySelect } from "@/components/country-select";
 
 export default function PurchaseCheckoutPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -72,7 +73,7 @@ export default function PurchaseCheckoutPage() {
             <input name="postalCode" required className={inputClass} />
           </Field>
           <Field label="Country">
-            <input name="country" required className={inputClass} placeholder="US" maxLength={2} />
+            <CountrySelect name="country" required defaultValue="US" className={inputClass} />
           </Field>
         </div>
 
