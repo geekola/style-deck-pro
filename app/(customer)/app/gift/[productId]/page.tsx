@@ -42,15 +42,15 @@ export default function GiftCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-lg mx-auto px-5 py-8">
-      <Link href="/app/saved" className="text-sm text-gray-400 hover:text-black">← Back</Link>
+    <div className="min-h-screen bg-white dark:bg-gray-950 max-w-lg mx-auto px-5 py-8">
+      <Link href="/app/saved" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">← Back</Link>
 
       <div className="mt-6 mb-8">
-        <span className="inline-block text-xs font-semibold uppercase tracking-widest bg-green-100 text-green-800 rounded-full px-3 py-1 mb-3">
+        <span className="inline-block text-xs font-semibold uppercase tracking-widest bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full px-3 py-1 mb-3">
           Gift
         </span>
         <h1 className="text-2xl font-semibold">Confirm shipping address</h1>
-        <p className="text-gray-500 text-sm mt-2">
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-2">
           Where should we ship your gift?
         </p>
       </div>
@@ -84,7 +84,7 @@ export default function GiftCheckoutPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-white text-sm font-medium py-3 rounded-xl hover:bg-gray-800 disabled:opacity-50 mt-2"
+          className="w-full bg-black dark:bg-white dark:text-black text-white text-sm font-medium py-3 rounded-xl hover:bg-gray-800 disabled:opacity-50 mt-2"
         >
           {loading ? "Confirming…" : "Confirm gift request"}
         </button>
@@ -96,11 +96,11 @@ export default function GiftCheckoutPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1.5">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputClass =
-  "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black";
+  "w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";

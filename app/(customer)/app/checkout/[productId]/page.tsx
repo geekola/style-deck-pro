@@ -42,12 +42,12 @@ export default function PurchaseCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-lg mx-auto px-5 py-8">
-      <Link href="/app/saved" className="text-sm text-gray-400 hover:text-black">← Back</Link>
+    <div className="min-h-screen bg-white dark:bg-gray-950 max-w-lg mx-auto px-5 py-8">
+      <Link href="/app/saved" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">← Back</Link>
 
       <div className="mt-6 mb-8">
         <h1 className="text-2xl font-semibold">Shipping address</h1>
-        <p className="text-gray-500 text-sm mt-2">
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm mt-2">
           You&apos;ll complete payment securely via Stripe.
         </p>
       </div>
@@ -81,7 +81,7 @@ export default function PurchaseCheckoutPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-white text-sm font-medium py-3 rounded-xl hover:bg-gray-800 disabled:opacity-50 mt-2"
+          className="w-full bg-black dark:bg-white dark:text-black text-white text-sm font-medium py-3 rounded-xl hover:bg-gray-800 disabled:opacity-50 mt-2"
         >
           {loading ? "Redirecting to payment…" : "Continue to payment →"}
         </button>
@@ -93,11 +93,11 @@ export default function PurchaseCheckoutPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1.5">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputClass =
-  "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black";
+  "w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";

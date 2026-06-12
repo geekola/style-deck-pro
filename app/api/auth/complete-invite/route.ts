@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { invites, customers, brandAccess } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { requireSession } from "@/lib/auth-session";
-import { audit, AuditAction } from "@/lib/audit";
+import { completeInvite, CUSTOMER_TYPE_VALUES, INDUSTRY_VALUES } from "@/lib/complete-invite";
 
 const schema = z.object({
   token: z.string().min(1),
-  type: z.enum(["celebrity", "athlete", "influencer", "executive", "creator", "other"]),
-  industry: z.enum(["film", "music", "sports", "fashion", "business", "media", "technology", "other"]),
+  type: z.enum(CUSTOMER_TYPE_VALUES),
+  industry: z.enum(INDUSTRY_VALUES),
 });
 
 /**
  * POST /api/auth/complete-invite
- * Called after a customer signs up via an invite link.
- * Creates their customer record, marks the invite accepted, and grants brand_access if applicable.
+ * Called after a customer signs up via an invite link and has an active
+ * session (i.e. email verification isn't required, or they've already
+ * verified). Creates their customer record, marks the invite accepted, and
+ * grants brand_access if applicable.
+ *
+ * When email verification is required, this same logic instead runs from
+ * /api/auth/finalize after the user verifies their email and is auto-signed-in.
  */
 export async function POST(request: NextRequest) {
   const session = await requireSession();
@@ -29,55 +31,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { token, type, industry } = parsed.data;
-
-  // Validate invite
-  const [invite] = await db
-    .select()
-    .from(invites)
-    .where(eq(invites.token, token))
-    .limit(1);
-
-  if (!invite || invite.status !== "pending" || invite.expiresAt < new Date()) {
-    return NextResponse.json({ error: "Invite is no longer valid" }, { status: 410 });
-  }
-
-  if (invite.email.toLowerCase() !== session.user.email.toLowerCase()) {
-    return NextResponse.json({ error: "This invite is for a different email address" }, { status: 403 });
-  }
-
-  // Create customer record
-  const [customer] = await db
-    .insert(customers)
-    .values({
-      userId: session.user.id,
-      type,
-      industry,
-    })
-    .returning({ id: customers.id });
-
-  // Mark invite accepted
-  await db
-    .update(invites)
-    .set({ status: "accepted" })
-    .where(eq(invites.id, invite.id));
-
-  // Grant brand access if this was a brand invite
-  if (invite.brandId) {
-    await db
-      .insert(brandAccess)
-      .values({ brandId: invite.brandId, customerId: customer.id })
-      .onConflictDoNothing();
-  }
-
-  await audit({
-    actorId: session.user.id,
-    action: AuditAction.INVITE_ACCEPTED,
-    entityType: "invite",
-    entityId: invite.id,
-    metadata: { accepted: true, customerId: customer.id },
+  const result = await completeInvite({
+    session,
+    ...parsed.data,
     ip: request.headers.get("x-forwarded-for") ?? undefined,
   });
+
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
 
   return NextResponse.json({ ok: true });
 }

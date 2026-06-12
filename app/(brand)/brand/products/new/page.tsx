@@ -97,14 +97,14 @@ export default function NewProductPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-black text-white text-sm px-5 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+            className="bg-black dark:bg-white dark:text-black text-white text-sm px-5 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
             {loading ? "Creating…" : "Create product"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="border border-gray-300 text-sm px-5 py-2 rounded-md hover:bg-gray-50"
+            className="border border-gray-300 dark:border-gray-600 text-sm px-5 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900"
           >
             Cancel
           </button>
@@ -125,12 +125,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">{label}</label>
       {children}
-      {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{hint}</p>}
     </div>
   );
 }
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black";
+  "w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";

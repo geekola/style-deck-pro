@@ -2,6 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail as sendVerificationEmailMessage,
+} from "@/lib/email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -17,6 +21,19 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, token }) => {
+      const url = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+      await sendPasswordResetEmail({ to: user.email, url });
+    },
+  },
+
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmailMessage({ to: user.email, url });
+    },
   },
 
   socialProviders: {
@@ -48,6 +65,12 @@ export const auth = betterAuth({
         defaultValue: "customer",
         input: false, // not settable by the client
       },
+    },
+    // Changing your email requires verifying the new address before it
+    // takes effect. The existing emailVerification.sendVerificationEmail
+    // callback (above) is reused to send the confirmation link.
+    changeEmail: {
+      enabled: true,
     },
   },
 });

@@ -63,12 +63,12 @@ export default function BrandCustomersPage() {
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             placeholder="Email address"
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-black"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
           />
           <button
             type="submit"
             disabled={inviting}
-            className="bg-black text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+            className="bg-black dark:bg-white dark:text-black text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
             {inviteSuccess ? "Sent!" : "Send invite"}
           </button>
@@ -76,15 +76,15 @@ export default function BrandCustomersPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400">Loading…</div>
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">Loading…</div>
       ) : customers.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           No customers yet. Send an invite to get started.
         </div>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500">
+            <tr className="border-b text-left text-gray-500 dark:text-gray-400 dark:text-gray-500">
               <th className="pb-3 font-medium">Name</th>
               <th className="pb-3 font-medium">Type</th>
               <th className="pb-3 font-medium">Industry</th>
@@ -94,19 +94,19 @@ export default function BrandCustomersPage() {
           </thead>
           <tbody className="divide-y">
             {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-gray-50">
+              <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
                 <td className="py-3">
                   <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-gray-400">{c.email}</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">{c.email}</div>
                 </td>
-                <td className="py-3 capitalize text-gray-600">{c.type}</td>
-                <td className="py-3 capitalize text-gray-600">{c.industry}</td>
+                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.type}</td>
+                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.industry}</td>
                 <td className="py-3">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                       c.hasAccess
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     {c.hasAccess ? "Granted" : "No access"}
@@ -115,7 +115,7 @@ export default function BrandCustomersPage() {
                 <td className="py-3 text-right">
                   <button
                     onClick={() => toggleAccess(c.id, !c.hasAccess)}
-                    className="text-xs text-gray-500 hover:text-black"
+                    className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white"
                   >
                     {c.hasAccess ? "Revoke" : "Grant"}
                   </button>

@@ -47,7 +47,7 @@ function ProductCard({
 
   return (
     <div
-      className="absolute inset-0 rounded-2xl border border-black/8 overflow-hidden select-none touch-none bg-gray-100"
+      className="absolute inset-0 rounded-2xl border border-black/8 overflow-hidden select-none touch-none bg-gray-100 dark:bg-gray-800"
       style={{ cursor: isTop ? "grab" : "default", ...style }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -70,10 +70,10 @@ function ProductCard({
 
       {/* Top labels */}
       <div className="absolute top-0 left-0 right-0 p-5 flex justify-between items-start">
-        <span className="text-xs uppercase tracking-widest text-white/70 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1">
+        <span className="text-xs uppercase tracking-widest text-white/70 bg-black dark:bg-white dark:text-black backdrop-blur-sm rounded-full px-3 py-1">
           {product.category}
         </span>
-        <span className="text-xs bg-white/90 text-gray-700 rounded-full px-3 py-1 font-medium">
+        <span className="text-xs bg-white dark:bg-gray-950/90 text-gray-700 dark:text-gray-300 dark:text-gray-600 rounded-full px-3 py-1 font-medium">
           {product.itemType === "gift" ? "Gift" : product.price != null ? `$${(product.price / 100).toFixed(0)}` : "—"}
         </span>
       </div>
@@ -177,7 +177,7 @@ function SwipeDeck({
       {/* Card stack */}
       <div className="relative w-80 h-[460px]">
         {deck.length === 0 ? (
-          <div className="w-full h-full rounded-2xl border-2 border-dashed border-black/10 flex flex-col items-center justify-center gap-3 text-gray-400">
+          <div className="w-full h-full rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500">
             <span className="text-4xl">✓</span>
             <span className="text-sm">All caught up</span>
           </div>
@@ -220,7 +220,7 @@ function SwipeDeck({
         <button
           onClick={() => exit("left")}
           disabled={deck.length === 0}
-          className="w-14 h-14 rounded-full border border-red-200 bg-white shadow-sm flex items-center justify-center text-2xl disabled:opacity-30 hover:bg-red-50 transition-colors"
+          className="w-14 h-14 rounded-full border border-red-200 bg-white dark:bg-gray-950 shadow-sm flex items-center justify-center text-2xl disabled:opacity-30 hover:bg-red-50 transition-colors"
           aria-label="Pass"
         >
           ✕
@@ -228,7 +228,7 @@ function SwipeDeck({
         <button
           onClick={handleUndo}
           disabled={undoStack.length === 0}
-          className="w-10 h-10 rounded-full border border-black/10 bg-white shadow-sm flex items-center justify-center text-base disabled:opacity-25 hover:bg-gray-50 transition-colors"
+          className="w-10 h-10 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-gray-950 shadow-sm flex items-center justify-center text-base disabled:opacity-25 hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 transition-colors"
           aria-label="Undo"
         >
           ↩
@@ -236,14 +236,14 @@ function SwipeDeck({
         <button
           onClick={() => exit("right")}
           disabled={deck.length === 0}
-          className="w-14 h-14 rounded-full border border-green-200 bg-white shadow-sm flex items-center justify-center text-2xl disabled:opacity-30 hover:bg-green-50 transition-colors"
+          className="w-14 h-14 rounded-full border border-green-200 bg-white dark:bg-gray-950 shadow-sm flex items-center justify-center text-2xl disabled:opacity-30 hover:bg-green-50 transition-colors"
           aria-label="Save"
         >
           ♥
         </button>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         {deck.length} remaining
       </p>
     </div>
@@ -287,27 +287,29 @@ export function SwipeExperience({
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col max-w-lg mx-auto">
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col max-w-lg mx-auto">
       {/* Nav */}
-      <nav className="sticky top-0 z-20 bg-white border-b border-black/6 px-5 py-3.5 flex items-center justify-between">
+      <nav className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-black/6 dark:border-white/10 px-5 py-3.5 flex items-center justify-between">
         <span className="text-xl font-semibold tracking-tight">StyleDeck</span>
         <div className="flex items-center gap-2">
           <Link
             href="/app/saved"
-            className="text-sm px-3.5 py-1.5 rounded-full border border-black/10 hover:bg-gray-50 transition-colors"
+            className="text-sm px-3.5 py-1.5 rounded-full border border-black/10 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 transition-colors"
           >
             Saved
           </Link>
           <Link
             href="/app/profile"
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-colors ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
               hasMeasurements
-                ? "bg-black text-white border-black"
-                : "bg-gray-100 text-gray-500 border-gray-200"
+                ? "bg-black dark:bg-white dark:text-black text-white border-black dark:border-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700"
             }`}
             title="Measurement profile"
           >
-            {userName.slice(0, 2).toUpperCase()}
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
           </Link>
         </div>
       </nav>
@@ -330,27 +332,27 @@ export function SwipeExperience({
 
       {/* Category picker */}
       <div className="px-5 pt-5 pb-2">
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Category</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Category</p>
         <div className="relative">
           <button
             onClick={() => setDropdownOpen((o) => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-black/12 bg-white text-sm"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-black/12 bg-white dark:bg-gray-950 text-sm"
           >
-            <span className={category ? "font-medium text-gray-900 capitalize" : "text-gray-400"}>
+            <span className={category ? "font-medium text-gray-900 dark:text-white capitalize" : "text-gray-400 dark:text-gray-500"}>
               {category ?? "Select a category to start…"}
             </span>
-            <span className={`text-xs text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
+            <span className={`text-xs text-gray-400 dark:text-gray-500 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
               ▼
             </span>
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-black/8 rounded-xl shadow-lg z-30 overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-950 border border-black/8 rounded-xl shadow-lg z-30 overflow-hidden">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => loadCategory(cat)}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:bg-gray-50 transition-colors capitalize border-b border-black/5 last:border-0 ${
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 transition-colors capitalize border-b border-black/5 last:border-0 ${
                     category === cat ? "font-medium" : ""
                   }`}
                 >
@@ -365,12 +367,12 @@ export function SwipeExperience({
       {/* Swipe area */}
       <div className="flex-1 flex items-center justify-center px-5 py-6">
         {!category ? (
-          <p className="text-gray-300 text-center text-lg">
+          <p className="text-gray-300 dark:text-gray-600 text-center text-lg">
             Select a category<br />
             <span className="text-sm font-normal">to start swiping</span>
           </p>
         ) : loading ? (
-          <div className="text-gray-400 text-sm">Loading…</div>
+          <div className="text-gray-400 dark:text-gray-500 text-sm">Loading…</div>
         ) : (
           <SwipeDeck
             key={category}

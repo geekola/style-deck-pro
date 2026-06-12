@@ -11,7 +11,7 @@ interface AuditParams {
 }
 
 /**
- * Write an audit log entry. Fire-and-forget — never throws.
+ * Write an audit log entry. Fire-and-forget -- never throws.
  */
 export async function audit(params: AuditParams): Promise<void> {
   try {
@@ -28,13 +28,20 @@ export async function audit(params: AuditParams): Promise<void> {
   }
 }
 
-// Well-known action strings — use these to keep audit logs consistent
+// Well-known action strings -- use these to keep audit logs consistent
 export const AuditAction = {
   // Brands
   BRAND_REGISTERED: "brand.registered",
   BRAND_APPROVED: "brand.approved",
   BRAND_REJECTED: "brand.rejected",
+  BRAND_SUSPENDED: "brand.suspended",
+  BRAND_REACTIVATED: "brand.reactivated",
   BRAND_UPDATED: "brand.updated",
+  BRAND_DELETED: "brand.deleted",
+  BRAND_ADMIN_ADDED: "brand.admin_added",
+  BRAND_ADMIN_REMOVED: "brand.admin_removed",
+  BRAND_ADMIN_SUSPENDED: "brand.admin_suspended",
+  BRAND_ADMIN_ACTIVATED: "brand.admin_activated",
   // Products
   PRODUCT_CREATED: "product.created",
   PRODUCT_UPDATED: "product.updated",
@@ -57,4 +64,6 @@ export const AuditAction = {
   // Admin
   USER_SUSPENDED: "user.suspended",
   USER_ACTIVATED: "user.activated",
+  USER_UPDATED: "user.updated",
+  USER_DELETED: "user.deleted",
 } as const;

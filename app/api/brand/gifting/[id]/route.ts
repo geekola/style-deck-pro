@@ -13,47 +13,6 @@ const updateSchema = z.object({
   reset: z.boolean().optional(), // manual reset of usedCents
 });
 
-const createSchema = z.object({
-  customerId: z.string().uuid(),
-  amountCents: z.number().int().nonnegative(),
-  periodType: z.enum(["rolling", "calendar"]),
-  periodStart: z.string().datetime(),
-});
-
-// POST /api/brand/gifting — create a new allowance
-export async function POST(request: NextRequest) {
-  const { session, brandId } = await requireBrandAdmin();
-
-  const body = await request.json().catch(() => null);
-  const parsed = createSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  }
-
-  const [row] = await db
-    .insert(giftingAllowances)
-    .values({
-      brandId,
-      customerId: parsed.data.customerId,
-      amountCents: parsed.data.amountCents,
-      periodType: parsed.data.periodType,
-      periodStart: new Date(parsed.data.periodStart),
-    })
-    .onConflictDoNothing()
-    .returning({ id: giftingAllowances.id });
-
-  await audit({
-    actorId: session.user.id,
-    action: AuditAction.GIFTING_ALLOWANCE_SET,
-    entityType: "gifting_allowance",
-    entityId: row?.id ?? parsed.data.customerId,
-    metadata: { amountCents: parsed.data.amountCents },
-    ip: request.headers.get("x-forwarded-for") ?? undefined,
-  });
-
-  return NextResponse.json({ id: row?.id }, { status: 201 });
-}
-
 // PUT /api/brand/gifting/[id]
 export async function PUT(
   request: NextRequest,

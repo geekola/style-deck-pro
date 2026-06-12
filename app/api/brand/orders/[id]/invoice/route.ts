@@ -7,7 +7,7 @@ import { eq, and } from "drizzle-orm";
 /**
  * GET /api/brand/orders/[id]/invoice
  *
- * Returns a printable HTML invoice for a brand order.
+ * Returns a printable HTML packing list for a brand order.
  * Opens in a new tab; browser print dialog handles PDF export.
  */
 export async function GET(
@@ -27,10 +27,12 @@ export async function GET(
       shippingAddress: orders.shippingAddress,
       createdAt: orders.createdAt,
       shippedAt: orders.shippedAt,
+      productId: products.id,
       productName: products.name,
       productCategory: products.category,
       brandName: brands.name,
       brandEmail: brands.fulfillmentEmail,
+      customerId: customers.id,
       customerName: users.name,
       customerEmail: users.email,
     })
@@ -49,25 +51,42 @@ export async function GET(
   const addr = row.shippingAddress;
   const addrHtml = addr
     ? `${addr.line1}${addr.line2 ? ", " + addr.line2 : ""}<br>${addr.city}, ${addr.state} ${addr.postalCode}<br>${addr.country}`
-    : "—";
+    : "No shipping address on file";
 
-  const date = new Date(row.createdAt).toLocaleDateString("en-US", {
+  const orderDate = new Date(row.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
   });
+
+  const shipDate = row.shippedAt
+    ? new Date(row.shippedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "--";
 
   const amount =
     row.orderType === "gift"
       ? "Gift (complimentary)"
       : `$${(row.amountCents / 100).toFixed(2)}`;
 
+  const qtyShipped = row.status === "shipped" ? "1" : "0";
+  const isComplete = row.status === "shipped";
+  const isPartial = false; // single-item orders are always all-or-nothing in MVP
+
+  const checkbox = (checked: boolean) =>
+    checked
+      ? `<span class="checkbox checked">&#10003;</span>`
+      : `<span class="checkbox"></span>`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invoice — ${row.orderId.slice(0, 8).toUpperCase()}</title>
+  <title>Packing List -- ${row.orderId.slice(0, 8).toUpperCase()}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -75,77 +94,93 @@ export async function GET(
       color: #1a1a1a;
       background: #fff;
       padding: 48px;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 13px;
+      line-height: 1.5;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding-bottom: 24px;
-      border-bottom: 2px solid #1a1a1a;
-      margin-bottom: 36px;
+    .title-bar {
+      text-align: center;
+      border: 2px solid #1a1a1a;
+      padding: 12px;
+      margin-bottom: 24px;
     }
-    .brand-name {
-      font-size: 28px;
+    .title-bar h1 {
+      font-size: 20px;
       font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .invoice-label {
-      font-size: 11px;
-      color: #888;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      margin-top: 4px;
     }
-    .meta { text-align: right; }
-    .meta .invoice-num {
-      font-size: 18px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    .meta .date { font-size: 13px; color: #666; margin-top: 4px; }
-    .grid {
+    .panels {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      margin-bottom: 36px;
+      gap: 16px;
+      margin-bottom: 16px;
     }
-    .section-label {
-      font-size: 11px;
-      font-weight: 600;
+    .panel {
+      border: 1px solid #1a1a1a;
+      padding: 12px 14px;
+      min-height: 90px;
+    }
+    .panel-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .panel-body { font-size: 13px; }
+    .panel-body strong { font-weight: 600; }
+    .order-info {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border: 1px solid #1a1a1a;
+      margin-bottom: 16px;
+    }
+    .order-info > div {
+      padding: 8px 10px;
+      border-right: 1px solid #1a1a1a;
+    }
+    .order-info > div:last-child { border-right: none; }
+    .order-info .label {
+      display: block;
+      font-size: 9px;
+      font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: #888;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
-    .section-value { color: #1a1a1a; }
-    .section-value strong { font-weight: 600; }
-    table {
+    .order-info .value {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    table.items {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 36px;
+      border: 1px solid #1a1a1a;
+      margin-bottom: 16px;
     }
-    thead tr {
-      border-bottom: 1.5px solid #1a1a1a;
-    }
-    th {
+    table.items th {
       text-align: left;
-      padding: 8px 0 10px;
-      font-size: 11px;
-      font-weight: 600;
+      padding: 8px 10px;
+      font-size: 10px;
+      font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #888;
+      background: #f3f3f3;
+      border-bottom: 1px solid #1a1a1a;
+      border-right: 1px solid #ddd;
     }
-    th:last-child, td:last-child { text-align: right; }
-    td {
-      padding: 14px 0;
-      border-bottom: 1px solid #eee;
+    table.items th:last-child, table.items td:last-child { border-right: none; }
+    table.items td {
+      padding: 12px 10px;
+      border-right: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
       vertical-align: top;
     }
-    .td-product { font-weight: 500; }
-    .td-type {
+    table.items td.center, table.items th.center { text-align: center; }
+    .item-sub {
       font-size: 11px;
       color: #888;
       text-transform: capitalize;
@@ -154,29 +189,70 @@ export async function GET(
     .total-row {
       display: flex;
       justify-content: flex-end;
-      gap: 48px;
-      padding: 16px 0;
-      border-top: 2px solid #1a1a1a;
-      font-weight: 600;
-      font-size: 16px;
+      align-items: center;
+      gap: 24px;
+      padding: 10px 14px;
+      border: 1px solid #1a1a1a;
+      border-top: none;
+      font-weight: 700;
+      font-size: 14px;
+      margin-top: -16px;
+      margin-bottom: 16px;
     }
+    .notes {
+      border: 1px solid #1a1a1a;
+      padding: 10px 14px;
+      min-height: 70px;
+      margin-bottom: 16px;
+    }
+    .notes-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .checks {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+    .checks label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid #1a1a1a;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .checkbox.checked { background: #1a1a1a; color: #fff; }
     .status-badge {
       display: inline-block;
-      padding: 3px 10px;
+      padding: 2px 8px;
       border-radius: 20px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       background: ${row.status === "shipped" ? "#dcfce7" : "#f3f4f6"};
       color: ${row.status === "shipped" ? "#166534" : "#374151"};
       text-transform: capitalize;
     }
     .footer {
-      margin-top: 48px;
-      padding-top: 20px;
+      margin-top: 24px;
+      padding-top: 14px;
       border-top: 1px solid #eee;
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10px;
       color: #bbb;
     }
     @media print {
@@ -186,52 +262,73 @@ export async function GET(
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="brand-name">${row.brandName}</div>
-      <div class="invoice-label">StyleDeck Fulfillment Invoice</div>
-    </div>
-    <div class="meta">
-      <div class="invoice-num">#${row.orderId.slice(0, 8).toUpperCase()}</div>
-      <div class="date">${date}</div>
-      <div style="margin-top:8px"><span class="status-badge">${row.status}</span></div>
-    </div>
+  <div class="title-bar">
+    <h1>Packing List</h1>
   </div>
 
-  <div class="grid">
-    <div>
-      <div class="section-label">Ship to</div>
-      <div class="section-value">
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-label">Company</div>
+      <div class="panel-body">
+        <strong>${row.brandName}</strong><br>
+        ${row.brandEmail}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Customer</div>
+      <div class="panel-body">
         <strong>${row.customerName}</strong><br>
+        ${row.customerEmail}<br>
         ${addrHtml}
       </div>
     </div>
+  </div>
+
+  <div class="order-info">
     <div>
-      <div class="section-label">Order details</div>
-      <div class="section-value">
-        <div>Type: <strong>${row.orderType === "gift" ? "Gift" : "Purchase"}</strong></div>
-        ${row.trackingNumber ? `<div style="margin-top:4px">Tracking: <strong>${row.trackingNumber}</strong></div>` : ""}
-        ${row.shippedAt ? `<div style="margin-top:4px">Shipped: <strong>${new Date(row.shippedAt).toLocaleDateString()}</strong></div>` : ""}
-      </div>
+      <span class="label">Order Date</span>
+      <span class="value">${orderDate}</span>
+    </div>
+    <div>
+      <span class="label">Ship Date</span>
+      <span class="value">${shipDate}</span>
+    </div>
+    <div>
+      <span class="label">Order Type</span>
+      <span class="value">${row.orderType === "gift" ? "Gift" : "Purchase"}</span>
+    </div>
+    <div>
+      <span class="label">Order Number</span>
+      <span class="value">#${row.orderId.slice(0, 8).toUpperCase()}</span>
+    </div>
+    <div>
+      <span class="label">Customer Number</span>
+      <span class="value">#${row.customerId.slice(0, 8).toUpperCase()}</span>
     </div>
   </div>
 
-  <table>
+  <table class="items">
     <thead>
       <tr>
-        <th>Item</th>
-        <th>Category</th>
-        <th>Amount</th>
+        <th class="center">#</th>
+        <th>SKU / ID#</th>
+        <th>Item Description</th>
+        <th>Size</th>
+        <th class="center">Qty. Ordered</th>
+        <th class="center">Qty. Shipped</th>
       </tr>
     </thead>
     <tbody>
       <tr>
+        <td class="center">1</td>
+        <td>${row.productId.slice(0, 8).toUpperCase()}</td>
         <td>
-          <div class="td-product">${row.productName}</div>
-          <div class="td-type">${row.orderType}</div>
+          ${row.productName}
+          <div class="item-sub">${row.productCategory}</div>
         </td>
-        <td style="color:#888;text-transform:capitalize">${row.productCategory}</td>
-        <td>${amount}</td>
+        <td>--</td>
+        <td class="center">1</td>
+        <td class="center">${qtyShipped}</td>
       </tr>
     </tbody>
   </table>
@@ -241,8 +338,21 @@ export async function GET(
     <span>${amount}</span>
   </div>
 
+  <div class="notes">
+    <div class="notes-label">Notes</div>
+    <div>
+      ${row.trackingNumber ? `Tracking number: <strong>${row.trackingNumber}</strong><br>` : ""}
+      Status: <span class="status-badge">${row.status}</span>
+    </div>
+  </div>
+
+  <div class="checks">
+    <label>${checkbox(isPartial)} Partial Order</label>
+    <label>${checkbox(isComplete)} Complete Order</label>
+  </div>
+
   <div class="footer">
-    <span>Generated by StyleDeck · ${new Date().toLocaleDateString()}</span>
+    <span>Generated by StyleDeck &middot; ${new Date().toLocaleDateString()}</span>
     <span>Order ID: ${row.orderId}</span>
   </div>
 

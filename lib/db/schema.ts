@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// --- Enums -------------------------------------------------------------------
 
 export const roleEnum = pgEnum("role", [
   "platform_admin",
@@ -44,6 +44,7 @@ export const brandStatusEnum = pgEnum("brand_status", [
   "pending",
   "approved",
   "rejected",
+  "suspended",
 ]);
 
 export const accessPolicyEnum = pgEnum("access_policy", [
@@ -87,7 +88,12 @@ export const customerStatusEnum = pgEnum("customer_status", [
   "suspended",
 ]);
 
-// ─── Auth tables (managed by Better Auth) ────────────────────────────────────
+// General-purpose account status (currently used to suspend brand_admin
+// users' portal access without suspending the whole brand; customers use
+// their own customerStatusEnum above since that also affects discovery).
+export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
+
+// --- Auth tables (managed by Better Auth) -------------------------------------
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -96,6 +102,10 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull().default("customer"),
+  // Account-level status. Used for brand_admin portal access (see
+  // requireBrandAdmin/requireBrandAdminPage); platform_admin and customer
+  // rows are expected to stay "active" (customers use customerStatusEnum).
+  status: userStatusEnum("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -140,7 +150,7 @@ export const verifications = pgTable("verifications", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// ─── Invites ──────────────────────────────────────────────────────────────────
+// --- Invites -------------------------------------------------------------------
 
 export const invites = pgTable(
   "invites",
@@ -159,7 +169,7 @@ export const invites = pgTable(
   (t) => [index("invites_email_idx").on(t.email)]
 );
 
-// ─── Brands ───────────────────────────────────────────────────────────────────
+// --- Brands ----------------------------------------------------------------------
 
 export const brands = pgTable("brands", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -168,6 +178,7 @@ export const brands = pgTable("brands", {
   adminEmail: text("admin_email").notNull(),
   fulfillmentEmail: text("fulfillment_email").notNull(),
   status: brandStatusEnum("status").notNull().default("pending"),
+  statusReason: text("status_reason"),
   accessPolicy: accessPolicyEnum("access_policy").notNull().default("open"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -188,7 +199,7 @@ export const brandAdmins = pgTable(
   (t) => [uniqueIndex("brand_admins_user_brand_idx").on(t.userId, t.brandId)]
 );
 
-// ─── Customers ────────────────────────────────────────────────────────────────
+// --- Customers -------------------------------------------------------------------
 
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -229,7 +240,7 @@ export const measurements = pgTable("measurements", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// ─── Products ─────────────────────────────────────────────────────────────────
+// --- Products ------------------------------------------------------------------
 
 export const products = pgTable(
   "products",
@@ -242,7 +253,7 @@ export const products = pgTable(
     category: brandCategoryEnum("category").notNull(),
     itemType: productTypeEnum("item_type").notNull(),
     description: text("description"),
-    costPrice: integer("cost_price"), // cents — never returned to customers
+    costPrice: integer("cost_price"), // cents -- never returned to customers
     price: integer("price"), // cents
     returnPolicy: text("return_policy"),
     active: boolean("active").notNull().default(true),
@@ -269,7 +280,7 @@ export const productImages = pgTable(
   (t) => [index("product_images_product_id_idx").on(t.productId)]
 );
 
-// ─── Access & Gifting ─────────────────────────────────────────────────────────
+// --- Access & Gifting ------------------------------------------------------------
 
 export const brandAccess = pgTable(
   "brand_access",
@@ -312,7 +323,7 @@ export const giftingAllowances = pgTable(
   ]
 );
 
-// ─── Discovery ────────────────────────────────────────────────────────────────
+// --- Discovery ---------------------------------------------------------------------
 
 export const swipeEvents = pgTable(
   "swipe_events",
@@ -357,7 +368,7 @@ export const savedProducts = pgTable(
   ]
 );
 
-// ─── Orders ───────────────────────────────────────────────────────────────────
+// --- Orders --------------------------------------------------------------------
 
 export const orders = pgTable(
   "orders",
@@ -395,7 +406,7 @@ export const orders = pgTable(
   ]
 );
 
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
+// --- Audit Logs ------------------------------------------------------------------
 
 export const auditLogs = pgTable(
   "audit_logs",
@@ -416,7 +427,7 @@ export const auditLogs = pgTable(
   ]
 );
 
-// ─── Relations ────────────────────────────────────────────────────────────────
+// --- Relations -----------------------------------------------------------------
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   customer: one(customers, {

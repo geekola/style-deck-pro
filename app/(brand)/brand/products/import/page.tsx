@@ -56,17 +56,17 @@ export default function ImportProductsPage() {
   return (
     <div className="max-w-2xl mx-auto px-6 py-10">
       <div className="flex items-center gap-3 mb-8">
-        <Link href="/brand/products" className="text-sm text-gray-400 hover:text-black">
+        <Link href="/brand/products" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">
           ← Products
         </Link>
-        <span className="text-gray-300">/</span>
+        <span className="text-gray-300 dark:text-gray-600">/</span>
         <h1 className="text-2xl font-semibold">Import from CSV</h1>
       </div>
 
       {/* Format guide */}
-      <div className="bg-gray-50 rounded-xl p-5 mb-8 text-sm">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-5 mb-8 text-sm">
         <p className="font-medium mb-2">Required columns</p>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-gray-600">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-gray-600 dark:text-gray-400 dark:text-gray-500">
           {[
             ["name", "Product name (required)"],
             ["category", "casual / business / formal / custom"],
@@ -77,14 +77,14 @@ export default function ImportProductsPage() {
             ["return_policy", "Optional return policy text"],
           ].map(([col, desc]) => (
             <div key={col} className="contents">
-              <span className="font-mono text-xs text-gray-800">{col}</span>
-              <span className="text-xs text-gray-500">{desc}</span>
+              <span className="font-mono text-xs text-gray-800 dark:text-gray-100">{col}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{desc}</span>
             </div>
           ))}
         </div>
         <button
           onClick={downloadTemplate}
-          className="mt-4 text-xs text-black underline underline-offset-2"
+          className="mt-4 text-xs text-black dark:text-white underline underline-offset-2"
         >
           Download template CSV
         </button>
@@ -93,19 +93,19 @@ export default function ImportProductsPage() {
       {/* Upload form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div
-          className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+          className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
           onClick={() => fileRef.current?.click()}
         >
           {file ? (
             <div>
               <p className="font-medium text-sm">{file.name}</p>
-              <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
             </div>
           ) : (
             <div>
               <p className="text-3xl mb-3 opacity-30">↑</p>
-              <p className="text-sm text-gray-500">Click to select a CSV file</p>
-              <p className="text-xs text-gray-400 mt-1">Max 500 rows</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Click to select a CSV file</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Max 500 rows</p>
             </div>
           )}
           <input
@@ -123,7 +123,7 @@ export default function ImportProductsPage() {
         <button
           type="submit"
           disabled={!file || loading}
-          className="w-full bg-black text-white rounded-lg py-3 text-sm font-medium disabled:opacity-40 hover:bg-gray-800 transition-colors"
+          className="w-full bg-black dark:bg-white dark:text-black text-white rounded-lg py-3 text-sm font-medium disabled:opacity-40 hover:bg-gray-800 transition-colors"
         >
           {loading ? "Importing…" : "Import products"}
         </button>
@@ -133,7 +133,7 @@ export default function ImportProductsPage() {
       {result && (
         <div className="mt-8">
           {"error" in result && !("results" in result) ? (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 dark:text-red-400">
               {result.error}
             </div>
           ) : success ? (
@@ -141,7 +141,7 @@ export default function ImportProductsPage() {
               <div
                 className={`rounded-xl p-4 mb-4 text-sm ${
                   result.errors === 0
-                    ? "bg-green-50 border border-green-200 text-green-800"
+                    ? "bg-green-50 border border-green-200 text-green-800 dark:text-green-400"
                     : "bg-amber-50 border border-amber-200 text-amber-800"
                 }`}
               >
@@ -161,7 +161,7 @@ export default function ImportProductsPage() {
 
               {result.results.filter((r) => r.status === "error").length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide">
                     Skipped rows
                   </p>
                   {result.results

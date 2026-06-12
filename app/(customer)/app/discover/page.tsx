@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { requireCustomer } from "@/lib/auth-session";
+import { requireCustomerPage } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { customers, measurements } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { SwipeExperience } from "./swipe-experience";
 
 export default async function DiscoverPage() {
-  const session = await requireCustomer();
+  const session = await requireCustomerPage();
 
   const [customer] = await db
     .select({ id: customers.id })

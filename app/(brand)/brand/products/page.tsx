@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { requireBrandAdmin } from "@/lib/auth-session";
+import { requireBrandAdminPage } from "@/lib/auth-session";
 import { getBrandProducts } from "@/lib/db/queries/brand";
 
 export default async function BrandProductsPage() {
-  const { brandId } = await requireBrandAdmin();
+  const { brandId } = await requireBrandAdminPage();
   const products = await getBrandProducts(brandId);
 
   return (
@@ -13,13 +13,13 @@ export default async function BrandProductsPage() {
         <div className="flex gap-3">
           <Link
             href="/brand/products/import"
-            className="border border-gray-300 text-sm px-4 py-2 rounded-md hover:bg-gray-50"
+            className="border border-gray-300 dark:border-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900"
           >
             Import CSV
           </Link>
           <Link
             href="/brand/products/new"
-            className="bg-black text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800"
+            className="bg-black dark:bg-white dark:text-black text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800"
           >
             Add product
           </Link>
@@ -27,13 +27,13 @@ export default async function BrandProductsPage() {
       </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           No products yet. Add your first product to get started.
         </div>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500">
+            <tr className="border-b text-left text-gray-500 dark:text-gray-400 dark:text-gray-500">
               <th className="pb-3 font-medium">Name</th>
               <th className="pb-3 font-medium">Category</th>
               <th className="pb-3 font-medium">Type</th>
@@ -44,19 +44,19 @@ export default async function BrandProductsPage() {
           </thead>
           <tbody className="divide-y">
             {products.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50">
+              <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
                 <td className="py-3 font-medium">{p.name}</td>
-                <td className="py-3 capitalize text-gray-600">{p.category}</td>
-                <td className="py-3 capitalize text-gray-600">{p.itemType}</td>
-                <td className="py-3 text-gray-600">
+                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
+                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.itemType}</td>
+                <td className="py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">
                   {p.price != null ? `$${(p.price / 100).toFixed(2)}` : "—"}
                 </td>
                 <td className="py-3">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                       p.active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     {p.active ? "Active" : "Inactive"}
@@ -65,7 +65,7 @@ export default async function BrandProductsPage() {
                 <td className="py-3 text-right">
                   <Link
                     href={`/brand/products/${p.id}`}
-                    className="text-gray-500 hover:text-black text-xs"
+                    className="text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white text-xs"
                   >
                     Edit
                   </Link>

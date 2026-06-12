@@ -104,24 +104,25 @@ export default function ProfilePage() {
 
   if (!loaded) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-gray-400 text-sm">
-        Loading…
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+        Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-lg mx-auto">
+    <>
+    <div className="min-h-screen bg-white dark:bg-gray-950 max-w-lg mx-auto print:hidden">
       {/* Sticky header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-black/6 px-5 py-3.5 flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-black/6 dark:border-white/10 px-5 py-3.5 flex items-center justify-between">
         <div>
-          <Link href="/app/discover" className="text-sm text-gray-400 hover:text-black">← Discover</Link>
-          <div className="text-xs text-gray-400 mt-0.5">{filled}/{total} fields filled</div>
+          <Link href="/app/discover" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">&larr; Discover</Link>
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{filled}/{total} fields filled</div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="text-xs px-3 py-1.5 rounded-full border border-black/10 hover:bg-gray-50"
+            className="text-xs px-3 py-1.5 rounded-full border border-black/10 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900"
           >
             Export PDF
           </button>
@@ -129,19 +130,19 @@ export default function ProfilePage() {
             onClick={handleSave}
             disabled={saving}
             className={`text-xs px-3 py-1.5 rounded-full text-white transition-colors ${
-              saved ? "bg-green-500" : "bg-black hover:bg-gray-800"
+              saved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800"
             }`}
           >
-            {saved ? "Saved ✓" : saving ? "Saving…" : "Save"}
+            {saved ? "Saved ✓" : saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
 
       <div className="px-5 py-6 space-y-6">
         {/* Progress */}
-        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-black rounded-full transition-all duration-500"
+            className="h-full bg-black dark:bg-white dark:text-black rounded-full transition-all duration-500"
             style={{ width: `${Math.round((filled / total) * 100)}%` }}
           />
         </div>
@@ -149,14 +150,14 @@ export default function ProfilePage() {
         {/* Gender + Unit toggles */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Profile</p>
-            <div className="flex rounded-xl overflow-hidden border border-black/10">
+            <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Profile</p>
+            <div className="flex rounded-xl overflow-hidden border border-black/10 dark:border-white/10">
               {(["male", "female"] as Gender[]).map((g) => (
                 <button
                   key={g}
                   onClick={() => { setGender(g); setExtended({}); }}
                   className={`flex-1 py-2.5 text-sm transition-colors ${
-                    gender === g ? "bg-black text-white font-medium" : "bg-white text-gray-500"
+                    gender === g ? "bg-black dark:bg-white dark:text-black text-white font-medium" : "bg-white dark:bg-gray-950 text-gray-500 dark:text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {g === "male" ? "Men's" : "Women's"}
@@ -165,14 +166,14 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Units</p>
-            <div className="flex rounded-xl overflow-hidden border border-black/10">
+            <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Units</p>
+            <div className="flex rounded-xl overflow-hidden border border-black/10 dark:border-white/10">
               {(["imperial", "metric"] as UnitSystem[]).map((u) => (
                 <button
                   key={u}
                   onClick={() => setUnit(u)}
                   className={`flex-1 py-2.5 text-sm transition-colors ${
-                    unit === u ? "bg-black text-white font-medium" : "bg-white text-gray-500"
+                    unit === u ? "bg-black dark:bg-white dark:text-black text-white font-medium" : "bg-white dark:bg-gray-950 text-gray-500 dark:text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {u === "imperial" ? "in" : "cm"}
@@ -184,7 +185,7 @@ export default function ProfilePage() {
 
         {/* Core fields */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black pb-2 mb-4 font-semibold">
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
             Core measurements
           </h2>
           <div className="space-y-3">
@@ -203,7 +204,7 @@ export default function ProfilePage() {
 
         {/* Extended fields */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black pb-2 mb-4 font-semibold">
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
             Extended measurements
           </h2>
           <div className="space-y-3">
@@ -224,13 +225,22 @@ export default function ProfilePage() {
           onClick={handleSave}
           disabled={saving}
           className={`w-full py-3.5 rounded-xl text-sm font-medium text-white transition-colors ${
-            saved ? "bg-green-500" : "bg-black hover:bg-gray-800"
+            saved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800"
           }`}
         >
-          {saved ? "Saved ✓" : saving ? "Saving…" : "Save measurements"}
+          {saved ? "Saved ✓" : saving ? "Saving..." : "Save measurements"}
         </button>
       </div>
     </div>
+
+    <MeasurementChart
+      gender={gender}
+      unit={unit}
+      core={core}
+      extended={extended}
+      extendedFields={extendedFields}
+    />
+    </>
   );
 }
 
@@ -251,8 +261,8 @@ function MeasureField({
 
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">
-        {label} {!isText && <span className="text-gray-300">({unit})</span>}
+      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
+        {label} {!isText && <span className="text-gray-300 dark:text-gray-600">({unit})</span>}
       </label>
       {isText ? (
         <input
@@ -260,7 +270,7 @@ function MeasureField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={hint}
-          className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         />
       ) : (
         <input
@@ -269,9 +279,82 @@ function MeasureField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={hint}
-          className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+          className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         />
       )}
+    </div>
+  );
+}
+
+function MeasurementChart({
+  gender,
+  unit,
+  core,
+  extended,
+  extendedFields,
+}: {
+  gender: Gender;
+  unit: UnitSystem;
+  core: Record<string, string>;
+  extended: Record<string, string>;
+  extendedFields: { key: string; label: string; hint: string }[];
+}) {
+  const unitLabel = unit === "imperial" ? "in" : "cm";
+
+  const rows: { label: string; value: string; isText: boolean }[] = [
+    ...Object.entries(CORE_FIELDS).map(([key, { label }]) => ({
+      label,
+      value: core[key] ?? "",
+      isText: false,
+    })),
+    ...extendedFields.map(({ key, label }) => ({
+      label,
+      value: extended[key] ?? "",
+      isText: label.includes("Notes") || label.includes("Preference"),
+    })),
+  ];
+
+  return (
+    <div className="hidden print:block p-10 text-black dark:text-white font-sans">
+      <div className="border-2 border-black dark:border-white text-center py-3 mb-6">
+        <h1 className="text-xl font-bold uppercase tracking-[0.2em]">
+          {gender === "male" ? "Men's" : "Women's"} Measurement Chart
+        </h1>
+      </div>
+
+      <div className="flex justify-between text-xs mb-4">
+        <span>Unit System: {unit === "imperial" ? "Imperial (inches)" : "Metric (centimeters)"}</span>
+        <span>Date: {new Date().toLocaleDateString()}</span>
+      </div>
+
+      <table className="w-full border-collapse border border-black dark:border-white text-sm mb-6">
+        <thead>
+          <tr>
+            <th className="border border-black dark:border-white bg-gray-100 dark:bg-gray-800 px-3 py-2 w-12 text-center font-semibold">#</th>
+            <th className="border border-black dark:border-white bg-gray-100 dark:bg-gray-800 px-3 py-2 text-left font-semibold">Measurement</th>
+            <th className="border border-black dark:border-white bg-gray-100 dark:bg-gray-800 px-3 py-2 w-36 text-right font-semibold">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={`${i}-${row.label}`}>
+              <td className="border border-black dark:border-white bg-gray-50 dark:bg-gray-900 px-3 py-2 text-center font-medium">{i + 1}</td>
+              <td className="border border-black dark:border-white px-3 py-2">{row.label}</td>
+              <td className="border border-black dark:border-white px-3 py-2 text-right">
+                {row.value ? (row.isText ? row.value : `${row.value} ${unitLabel}`) : "--"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="border border-black dark:border-white p-3 text-xs min-h-[80px]">
+        <p className="font-semibold uppercase tracking-widest">Notes</p>
+      </div>
+
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-6 text-center">
+        Generated by StyleDeck &middot; {new Date().toLocaleDateString()}
+      </p>
     </div>
   );
 }

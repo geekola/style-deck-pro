@@ -57,7 +57,7 @@ export async function PUT(
     .where(and(eq(products.id, id), eq(products.brandId, brandId)));
 
   // Determine audit action
-  let action = AuditAction.PRODUCT_UPDATED;
+  let action: string = AuditAction.PRODUCT_UPDATED;
   if (parsed.data.active === true) action = AuditAction.PRODUCT_ACTIVATED;
   if (parsed.data.active === false) action = AuditAction.PRODUCT_DEACTIVATED;
 

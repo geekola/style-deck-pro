@@ -1,21 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, sendVerificationEmail } from "@/lib/auth-client";
 import { Suspense } from "react";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
+  const queryError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    queryError === "brand_suspended"
+      ? "Your brand account is currently suspended. Contact StyleDeck support for details."
+      : queryError === "admin_suspended"
+        ? "Your account access has been suspended. Contact StyleDeck support for details."
+        : null
+  );
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
 
   // After auth, go through /api/auth/finalize which sets sd_role cookie + redirects
   const finalizeUrl = "/api/auth/finalize";
@@ -24,6 +32,8 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setUnverified(false);
+    setResendState("idle");
 
     const result = await signIn.email({
       email,
@@ -32,14 +42,30 @@ function LoginForm() {
     });
 
     if (result.error) {
-      setError(result.error.message ?? "Invalid email or password");
+      if (result.error.code === "EMAIL_NOT_VERIFIED") {
+        setUnverified(true);
+        setError("Please verify your email address before signing in. We've sent you a new verification link.");
+      } else {
+        setError(result.error.message ?? "Invalid email or password");
+      }
       setLoading(false);
       return;
     }
 
-    // Email/password sign-in doesn't always follow callbackURL client-side —
-    // navigate manually through finalize to get sd_role set.
-    router.push(finalizeUrl);
+    // Email/password sign-in doesn't always follow callbackURL client-side --
+    // navigate manually through finalize to get sd_role set. Use a full page
+    // navigation (not router.push) since /api/auth/finalize is a Route Handler
+    // that issues a redirect -- router.push doesn't reliably follow it.
+    window.location.href = finalizeUrl;
+  }
+
+  async function handleResendVerification() {
+    setResendState("sending");
+    await sendVerificationEmail({
+      email,
+      callbackURL: callbackUrl ?? finalizeUrl,
+    });
+    setResendState("sent");
   }
 
   async function handleGoogle() {
@@ -48,22 +74,22 @@ function LoginForm() {
       provider: "google",
       callbackURL: finalizeUrl,
     });
-    // Google auth redirects away — loading state stays until page unloads
+    // Google auth redirects away -- loading state stays until page unloads
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold tracking-tight">StyleDeck</h1>
-          <p className="text-gray-400 text-sm mt-2">Sign in to your account</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Sign in to your account</p>
         </div>
 
         {/* Google */}
         <button
           onClick={handleGoogle}
           disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 mb-6"
+          className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 transition-colors disabled:opacity-50 mb-6"
         >
           {/* Google icon */}
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -72,14 +98,14 @@ function LoginForm() {
             <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
             <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
           </svg>
-          {googleLoading ? "Redirecting…" : "Continue with Google"}
+          {googleLoading ? "Redirecting..." : "Continue with Google"}
         </button>
 
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100" />
+            <div className="w-full border-t border-gray-100 dark:border-gray-800" />
           </div>
-          <div className="relative flex justify-center text-xs text-gray-400 bg-white px-3">
+          <div className="relative flex justify-center text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-950 px-3">
             or sign in with email
           </div>
         </div>
@@ -87,44 +113,65 @@ function LoginForm() {
         {/* Email/password */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600">Password</label>
+              <Link href="/forgot-password" className="text-xs text-gray-400 dark:text-gray-500 underline underline-offset-2 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="••••••••"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+              placeholder="********"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <div className="text-sm text-red-600">
+              <p>{error}</p>
+              {unverified && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendState !== "idle"}
+                  className="mt-1 text-black dark:text-white underline underline-offset-2 disabled:opacity-50"
+                >
+                  {resendState === "sending"
+                    ? "Sending..."
+                    : resendState === "sent"
+                      ? "Verification email sent"
+                      : "Resend verification email"}
+                </button>
+              )}
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className="w-full bg-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="w-full bg-black dark:bg-white dark:text-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-400 mt-8">
+        <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-8">
           Brand?{" "}
-          <Link href="/brand/register" className="text-black underline underline-offset-2">
+          <Link href="/brand/register" className="text-black dark:text-white underline underline-offset-2">
             Apply to join
           </Link>
         </p>

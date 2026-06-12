@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth-client";
 
 const CUSTOMER_TYPES = ["celebrity", "athlete", "influencer", "executive", "creator", "other"] as const;
@@ -15,7 +14,6 @@ export default function InviteRegistrationPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = use(params);
-  const router = useRouter();
 
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [name, setName] = useState("");
@@ -24,6 +22,7 @@ export default function InviteRegistrationPage({
   const [industry, setIndustry] = useState<typeof INDUSTRIES[number]>("other");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   // Validate invite on mount
   useEffect(() => {
@@ -38,12 +37,17 @@ export default function InviteRegistrationPage({
     setLoading(true);
     setError(null);
 
+    // Carry the invite details through to /api/auth/finalize, which is used
+    // both as the normal post-login redirect and as the callback target after
+    // email verification (see step 2 below).
+    const finalizeUrl = `/api/auth/finalize?inviteToken=${encodeURIComponent(token)}&type=${type}&industry=${industry}`;
+
     // 1. Create Better Auth account
     const result = await signUp.email({
       email: invite.email,
       password,
       name,
-      callbackURL: "/api/auth/finalize",
+      callbackURL: finalizeUrl,
     });
 
     if (result.error) {
@@ -52,7 +56,18 @@ export default function InviteRegistrationPage({
       return;
     }
 
-    // 2. Complete invite (creates customer record + grants brand access if applicable)
+    // With requireEmailVerification enabled, sign-up doesn't create a session
+    // (result.data.token is null) -- the user must verify their email first.
+    // /api/auth/verify-email will auto-sign them in and redirect to
+    // finalizeUrl above, which completes the invite once a session exists.
+    if (!result.data?.token) {
+      setLoading(false);
+      setCheckEmail(true);
+      return;
+    }
+
+    // 2. Session already exists (email verification not required) -- complete
+    // the invite now (creates customer record + grants brand access if applicable)
     const completeRes = await fetch("/api/auth/complete-invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,15 +81,17 @@ export default function InviteRegistrationPage({
       return;
     }
 
-    // 3. Finalize: sets sd_role cookie + redirects to the right dashboard
-    router.push("/api/auth/finalize");
+    // 3. Finalize: sets sd_role cookie + redirects to the right dashboard.
+    // Use a full page navigation since /api/auth/finalize is a Route Handler
+    // that issues a redirect -- router.push doesn't reliably follow it.
+    window.location.href = "/api/auth/finalize";
   }
 
   // Loading state
   if (!invite) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
-        Validating invitation…
+      <div className="min-h-screen flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+        Validating invitation...
       </div>
     );
   }
@@ -84,9 +101,24 @@ export default function InviteRegistrationPage({
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
-          <p className="text-4xl mb-4">✕</p>
+          <p className="text-4xl mb-4">x</p>
           <h1 className="text-xl font-semibold mb-2">Invitation not valid</h1>
-          <p className="text-gray-500 text-sm">{invite.error}</p>
+          <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">{invite.error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Account created -- waiting on email verification before we can finish setup
+  if (checkEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 px-4">
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-2xl font-semibold mb-4">Check your email</h1>
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm">
+            We&apos;ve sent a verification link to <strong>{invite.email}</strong>. Click it to
+            activate your account and finish setting up your profile.
+          </p>
         </div>
       </div>
     );
@@ -94,56 +126,56 @@ export default function InviteRegistrationPage({
 
   // Registration form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold tracking-tight">StyleDeck</h1>
-          <p className="text-gray-400 text-sm mt-2">You've been invited. Create your account.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">You've been invited. Create your account.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email locked to invite */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Email</label>
             <input
               type="email"
               value={invite.email}
               disabled
-              className="w-full border border-gray-100 bg-gray-50 rounded-lg px-3 py-2.5 text-sm text-gray-500"
+              className="w-full border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded-lg px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Full name</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
               placeholder="Your name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Password</label>
             <input
               type="password"
               required
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
               placeholder="Min. 8 characters"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">I am a…</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">I am a...</label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as typeof type)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black capitalize"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white capitalize"
             >
               {CUSTOMER_TYPES.map((t) => (
                 <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -152,11 +184,11 @@ export default function InviteRegistrationPage({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Industry</label>
             <select
               value={industry}
               onChange={(e) => setIndustry(e.target.value as typeof industry)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
             >
               {INDUSTRIES.map((i) => (
                 <option key={i} value={i}>{i.charAt(0).toUpperCase() + i.slice(1)}</option>
@@ -169,15 +201,15 @@ export default function InviteRegistrationPage({
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 mt-2"
+            className="w-full bg-black dark:bg-white dark:text-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 mt-2"
           >
-            {loading ? "Creating account…" : "Create account"}
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-400 mt-6">
+        <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-6">
           Already have an account?{" "}
-          <a href="/login" className="text-black underline underline-offset-2">Sign in</a>
+          <a href="/login" className="text-black dark:text-white underline underline-offset-2">Sign in</a>
         </p>
       </div>
     </div>
