@@ -10,7 +10,7 @@ type Profile = {
   customerIndustry: string;
 };
 
-const CUSTOMER_TYPES = ["celebrity", "athlete", "influencer", "executive", "creator", "other"] as const;
+const CUSTOMER_TYPES = ["actor", "athlete", "influencer", "performer"] as const;
 const INDUSTRIES = ["film", "music", "sports", "fashion", "business", "media", "technology", "other"] as const;
 
 const inputClass =

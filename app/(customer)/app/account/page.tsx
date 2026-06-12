@@ -11,12 +11,10 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const CUSTOMER_TYPES: { value: string; label: string }[] = [
-  { value: "celebrity", label: "Celebrity" },
+  { value: "actor", label: "Actor" },
   { value: "athlete", label: "Athlete" },
   { value: "influencer", label: "Influencer" },
-  { value: "executive", label: "Executive" },
-  { value: "creator", label: "Creator" },
-  { value: "other", label: "Other" },
+  { value: "performer", label: "Performer" },
 ];
 
 const INDUSTRIES: { value: string; label: string }[] = [

@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { signUp } from "@/lib/auth-client";
 
-const CUSTOMER_TYPES = ["celebrity", "athlete", "influencer", "executive", "creator", "other"] as const;
+const CUSTOMER_TYPES = ["actor", "athlete", "influencer", "performer"] as const;
 const INDUSTRIES = ["film", "music", "sports", "fashion", "business", "media", "technology", "other"] as const;
 
 type InviteInfo = { email: string; valid: true } | { error: string };
@@ -18,7 +18,7 @@ export default function InviteRegistrationPage({
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [type, setType] = useState<typeof CUSTOMER_TYPES[number]>("other");
+  const [type, setType] = useState<typeof CUSTOMER_TYPES[number]>("performer");
   const [industry, setIndustry] = useState<typeof INDUSTRIES[number]>("other");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

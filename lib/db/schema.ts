@@ -21,12 +21,10 @@ export const roleEnum = pgEnum("role", [
 ]);
 
 export const customerTypeEnum = pgEnum("customer_type", [
-  "celebrity",
+  "actor",
   "athlete",
   "influencer",
-  "executive",
-  "creator",
-  "other",
+  "performer",
 ]);
 
 export const industryEnum = pgEnum("industry", [

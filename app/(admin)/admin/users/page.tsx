@@ -73,7 +73,7 @@ export default async function AdminUsersPage() {
                     profile={{
                       name: u.name,
                       email: u.email,
-                      customerType: u.customerType ?? "other",
+                      customerType: u.customerType ?? "performer",
                       customerIndustry: u.customerIndustry ?? "other",
                     }}
                   />
