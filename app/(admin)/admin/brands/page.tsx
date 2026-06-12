@@ -1,19 +1,49 @@
-import { requirePlatformAdmin } from "@/lib/auth-session";
+import { requirePlatformAdminPage } from "@/lib/auth-session";
 import { db } from "@/lib/db";
-import { brands } from "@/lib/db/schema";
-import { asc } from "drizzle-orm";
+import { brands, brandAdmins, users } from "@/lib/db/schema";
+import { asc, eq } from "drizzle-orm";
 import { BrandActions } from "./brand-actions";
+import { AddAdminForm } from "./add-admin-form";
+import { BrandAdminsList, type BrandAdmin } from "./brand-admins-list";
+
+type Brand = typeof brands.$inferSelect;
+
+function toBrandDetails(b: Brand) {
+  return {
+    name: b.name,
+    category: b.category,
+    adminEmail: b.adminEmail,
+    fulfillmentEmail: b.fulfillmentEmail,
+    accessPolicy: b.accessPolicy,
+  };
+}
 
 export default async function AdminBrandsPage() {
-  await requirePlatformAdmin();
+  await requirePlatformAdminPage();
 
   const allBrands = await db
     .select()
     .from(brands)
     .orderBy(asc(brands.createdAt));
 
+  const allBrandAdmins = await db
+    .select({
+      brandId: brandAdmins.brandId,
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      status: users.status,
+    })
+    .from(brandAdmins)
+    .innerJoin(users, eq(users.id, brandAdmins.userId));
+
+  function adminsFor(brandId: string): BrandAdmin[] {
+    return allBrandAdmins.filter((a) => a.brandId === brandId);
+  }
+
   const pending = allBrands.filter((b) => b.status === "pending");
   const approved = allBrands.filter((b) => b.status === "approved");
+  const suspended = allBrands.filter((b) => b.status === "suspended");
   const rejected = allBrands.filter((b) => b.status === "rejected");
 
   return (
@@ -22,7 +52,7 @@ export default async function AdminBrandsPage() {
 
       {pending.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-4">
             Pending review ({pending.length})
           </h2>
           <div className="space-y-3">
@@ -31,10 +61,10 @@ export default async function AdminBrandsPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{b.name}</div>
-                    <div className="text-sm text-gray-600 capitalize">{b.category}</div>
-                    <div className="text-sm text-gray-500 mt-1">{b.adminEmail}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 capitalize">{b.category}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{b.adminEmail}</div>
                   </div>
-                  <BrandActions id={b.id} />
+                  <BrandActions id={b.id} status="pending" brand={toBrandDetails(b)} />
                 </div>
               </div>
             ))}
@@ -43,50 +73,91 @@ export default async function AdminBrandsPage() {
       )}
 
       <section className="mb-10">
-        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-4">
           Approved ({approved.length})
         </h2>
-        <BrandTable brands={approved} />
+        {approved.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">None.</p>
+        ) : (
+          <div className="space-y-3">
+            {approved.map((b) => (
+              <div key={b.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-medium">{b.name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 capitalize">{b.category}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{b.adminEmail}</div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      {new Date(b.createdAt).toLocaleDateString()}
+                    </div>
+                    <BrandActions id={b.id} status="approved" brand={toBrandDetails(b)} />
+                  </div>
+                </div>
+                <AddAdminForm brandId={b.id} />
+                <BrandAdminsList brandId={b.id} admins={adminsFor(b.id)} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
+
+      {suspended.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-4">
+            Suspended ({suspended.length})
+          </h2>
+          <div className="space-y-3">
+            {suspended.map((b) => (
+              <div key={b.id} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-medium">{b.name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 capitalize">{b.category}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{b.adminEmail}</div>
+                    {b.statusReason && (
+                      <div className="text-sm text-amber-700 mt-2">Reason: {b.statusReason}</div>
+                    )}
+                  </div>
+                  <BrandActions id={b.id} status="suspended" brand={toBrandDetails(b)} />
+                </div>
+                <BrandAdminsList brandId={b.id} admins={adminsFor(b.id)} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {rejected.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-4">
             Rejected ({rejected.length})
           </h2>
-          <BrandTable brands={rejected} />
+          <div className="space-y-3">
+            {rejected.map((b) => (
+              <div key={b.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-medium">{b.name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 capitalize">{b.category}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{b.adminEmail}</div>
+                    {b.statusReason && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">Reason: {b.statusReason}</div>
+                    )}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                      {new Date(b.createdAt).toLocaleDateString()}
+                    </div>
+                    <BrandActions id={b.id} status="rejected" brand={toBrandDetails(b)} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </div>
-  );
-}
-
-function BrandTable({ brands: rows }: { brands: typeof brands.$inferSelect[] }) {
-  if (rows.length === 0) {
-    return <p className="text-sm text-gray-400">None.</p>;
-  }
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b text-left text-gray-500">
-          <th className="pb-3 font-medium">Name</th>
-          <th className="pb-3 font-medium">Category</th>
-          <th className="pb-3 font-medium">Admin email</th>
-          <th className="pb-3 font-medium">Registered</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y">
-        {rows.map((b) => (
-          <tr key={b.id} className="hover:bg-gray-50">
-            <td className="py-3 font-medium">{b.name}</td>
-            <td className="py-3 capitalize text-gray-600">{b.category}</td>
-            <td className="py-3 text-gray-600">{b.adminEmail}</td>
-            <td className="py-3 text-gray-500">
-              {new Date(b.createdAt).toLocaleDateString()}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
