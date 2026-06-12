@@ -9,6 +9,7 @@ import {
   changePassword,
 } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TeamSection } from "./team-section";
 
 export default function BrandAccountPage() {
   const { data: session, isPending } = useSession();
@@ -195,6 +196,9 @@ export default function BrandAccountPage() {
             </div>
           </div>
         </section>
+
+        {/* Team */}
+        <TeamSection />
 
         {/* Password */}
         <section>
