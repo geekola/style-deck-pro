@@ -264,6 +264,18 @@ export function SwipeExperience({
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.localStorage.getItem("styledeck_onboarding_seen")) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  function dismissOnboarding() {
+    window.localStorage.setItem("styledeck_onboarding_seen", "1");
+    setShowOnboarding(false);
+  }
 
   async function loadProducts(cat: Category, type: "gift" | "purchase" | null) {
     setLoading(true);
@@ -300,6 +312,50 @@ export function SwipeExperience({
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col max-w-lg mx-auto">
+      {/* First-visit welcome overlay */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-5">
+          <div className="bg-white dark:bg-gray-950 rounded-2xl max-w-sm w-full p-6 shadow-xl">
+            <h2 className="text-xl font-semibold mb-1">Welcome, {userName.split(" ")[0]}!</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              Here&apos;s how StyleDeck works:
+            </p>
+            <ul className="space-y-4 mb-6">
+              <li className="flex items-start gap-3">
+                <span className="text-2xl leading-none">♥</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Swipe a card right (or tap the heart) to <strong>save</strong> something you like.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-2xl leading-none">✕</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Swipe left (or tap the X) to <strong>pass</strong>.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-2xl leading-none">📁</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Tap <strong>Saved</strong> at the top to see everything you&apos;ve liked.
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-2xl leading-none">📏</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Tap the icon in the top-right to add your <strong>measurements</strong> before ordering.
+                </span>
+              </li>
+            </ul>
+            <button
+              onClick={dismissOnboarding}
+              className="w-full bg-black dark:bg-white dark:text-black text-white text-sm font-medium py-3 rounded-xl hover:bg-gray-800"
+            >
+              Got it, let&apos;s go
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Nav */}
       <nav className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-black/6 dark:border-white/10 px-5 py-3.5 flex items-center justify-between">
         <span className="text-xl font-semibold tracking-tight">StyleDeck</span>
