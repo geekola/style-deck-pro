@@ -1,11 +1,11 @@
-import { requirePlatformAdmin } from "@/lib/auth-session";
+import { requirePlatformAdminPage } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { users, customers } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { UserActions } from "./user-actions";
 
 export default async function AdminUsersPage() {
-  await requirePlatformAdmin();
+  await requirePlatformAdminPage();
 
   const rows = await db
     .select({
@@ -16,6 +16,7 @@ export default async function AdminUsersPage() {
       emailVerified: users.emailVerified,
       createdAt: users.createdAt,
       customerType: customers.type,
+      customerIndustry: customers.industry,
       customerStatus: customers.status,
     })
     .from(users)
@@ -28,7 +29,7 @@ export default async function AdminUsersPage() {
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b text-left text-gray-500">
+          <tr className="border-b text-left text-gray-500 dark:text-gray-400 dark:text-gray-500">
             <th className="pb-3 font-medium">Name</th>
             <th className="pb-3 font-medium">Role</th>
             <th className="pb-3 font-medium">Type</th>
@@ -39,29 +40,29 @@ export default async function AdminUsersPage() {
         </thead>
         <tbody className="divide-y">
           {rows.map((u) => (
-            <tr key={u.id} className="hover:bg-gray-50">
+            <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
               <td className="py-3">
                 <div className="font-medium">{u.name}</div>
-                <div className="text-xs text-gray-400">{u.email}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{u.email}</div>
               </td>
-              <td className="py-3 capitalize text-gray-600">{u.role.replace("_", " ")}</td>
-              <td className="py-3 capitalize text-gray-600">{u.customerType ?? "—"}</td>
+              <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{u.role.replace("_", " ")}</td>
+              <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{u.customerType ?? "—"}</td>
               <td className="py-3">
                 {u.customerStatus ? (
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                       u.customerStatus === "active"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                        : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                     }`}
                   >
                     {u.customerStatus}
                   </span>
                 ) : (
-                  <span className="text-gray-400 text-xs">—</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>
                 )}
               </td>
-              <td className="py-3 text-gray-500 text-xs">
+              <td className="py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">
                 {new Date(u.createdAt).toLocaleDateString()}
               </td>
               <td className="py-3 text-right">
@@ -69,6 +70,12 @@ export default async function AdminUsersPage() {
                   <UserActions
                     userId={u.id}
                     currentStatus={u.customerStatus}
+                    profile={{
+                      name: u.name,
+                      email: u.email,
+                      customerType: u.customerType ?? "other",
+                      customerIndustry: u.customerIndustry ?? "other",
+                    }}
                   />
                 )}
               </td>
