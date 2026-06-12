@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "@/lib/auth-client";
 
 type Gender = "male" | "female";
 type UnitSystem = "metric" | "imperial";
@@ -48,6 +49,7 @@ const EXTENDED_FEMALE: { key: string; label: string; hint: string }[] = [
 ];
 
 export default function ProfilePage() {
+  const { data: session } = useSession();
   const [gender, setGender] = useState<Gender>("male");
   const [unit, setUnit] = useState<UnitSystem>("imperial");
   const [core, setCore] = useState<Record<string, string>>({});
@@ -234,6 +236,7 @@ export default function ProfilePage() {
     </div>
 
     <MeasurementChart
+      userName={session?.user?.name ?? ""}
       gender={gender}
       unit={unit}
       core={core}
@@ -287,12 +290,14 @@ function MeasureField({
 }
 
 function MeasurementChart({
+  userName,
   gender,
   unit,
   core,
   extended,
   extendedFields,
 }: {
+  userName: string;
   gender: Gender;
   unit: UnitSystem;
   core: Record<string, string>;
@@ -323,6 +328,7 @@ function MeasurementChart({
       </div>
 
       <div className="flex justify-between text-xs mb-4">
+        <span>Customer: {userName || "—"}</span>
         <span>Unit System: {unit === "imperial" ? "Imperial (inches)" : "Metric (centimeters)"}</span>
         <span>Date: {new Date().toLocaleDateString()}</span>
       </div>
