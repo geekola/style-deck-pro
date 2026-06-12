@@ -28,7 +28,8 @@ const shippingSchema = z.object({
 const orderSchema = z.discriminatedUnion("orderType", [
   z.object({
     orderType: z.literal("purchase"),
-    productId: z.string().uuid(),
+    productId: z.string().uuid().optional(),
+    productIds: z.array(z.string().uuid()).min(1).max(10).optional(),
     shippingAddress: shippingSchema,
   }),
   z.object({
@@ -98,7 +99,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { orderType, productId, shippingAddress } = parsed.data;
+  if (
+    parsed.data.orderType === "purchase" &&
+    !parsed.data.productId &&
+    !parsed.data.productIds?.length
+  ) {
+    return NextResponse.json({ error: "productId or productIds is required" }, { status: 400 });
+  }
+
+  const { shippingAddress } = parsed.data;
 
   // Get customer
   const [customer] = await db
@@ -112,20 +121,22 @@ export async function POST(request: NextRequest) {
   // Measurements required
   await assertMeasurementsComplete(customer.id);
 
-  // Get product
-  const [product] = await db
-    .select()
-    .from(products)
-    .where(and(eq(products.id, productId), eq(products.active, true)))
-    .limit(1);
-
-  if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-
-  // Verify access
-  await assertCustomerHasProductAccess(customer.id, product);
-
   // ── Gift order ──────────────────────────────────────────────────────────────
-  if (orderType === "gift") {
+  if (parsed.data.orderType === "gift") {
+    const productId = parsed.data.productId;
+
+    // Get product
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.active, true)))
+      .limit(1);
+
+    if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+    // Verify access
+    await assertCustomerHasProductAccess(customer.id, product);
+
     if (product.itemType !== "gift") {
       return NextResponse.json({ error: "This product is not available as a gift" }, { status: 400 });
     }
@@ -199,28 +210,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ orderId: order.id, orderType: "gift" }, { status: 201 });
   }
 
-  // ── Purchase order ──────────────────────────────────────────────────────────
-  if (product.itemType !== "purchase" || !product.price) {
-    return NextResponse.json({ error: "This product is not available for purchase" }, { status: 400 });
+  // ── Purchase order(s) ──────────────────────────────────────────────────────
+  // Supports both a single product (productId) and multiple products from the
+  // same brand checked out together (productIds), e.g. from the Saved page.
+  const productIds = parsed.data.productIds ?? [parsed.data.productId!];
+
+  const purchaseProducts = await db
+    .select()
+    .from(products)
+    .where(and(inArray(products.id, productIds), eq(products.active, true)));
+
+  if (purchaseProducts.length !== productIds.length) {
+    return NextResponse.json({ error: "One or more products not found" }, { status: 404 });
   }
+
+  if (purchaseProducts.some((p) => p.itemType !== "purchase" || !p.price)) {
+    return NextResponse.json({ error: "One or more products are not available for purchase" }, { status: 400 });
+  }
+
+  const brandId = purchaseProducts[0].brandId;
+  if (purchaseProducts.some((p) => p.brandId !== brandId)) {
+    return NextResponse.json({ error: "All items in an order must be from the same brand" }, { status: 400 });
+  }
+
+  // Verify access (same brand for all items, so checking one product suffices)
+  await assertCustomerHasProductAccess(customer.id, purchaseProducts[0]);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          unit_amount: product.price,
-          product_data: { name: product.name },
-        },
-        quantity: 1,
+    line_items: purchaseProducts.map((p) => ({
+      price_data: {
+        currency: "usd",
+        unit_amount: p.price!,
+        product_data: { name: p.name },
       },
-    ],
+      quantity: 1,
+    })),
     metadata: {
       customerId: customer.id,
-      productId,
-      brandId: product.brandId,
+      productIds: JSON.stringify(productIds),
+      brandId,
       userId: session.user.id,
       shippingAddress: JSON.stringify(shippingAddress),
     },
