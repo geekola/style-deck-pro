@@ -51,3 +51,6 @@ styledeck-brand-portal.jsx
 
 # stray removed files (OneDrive lock issue prevents deletion)
 *.removed
+
+# superseded by row-actions.tsx (OneDrive lock issue prevents deletion)
+app/(admin)/admin/brands/brand-actions.tsx
