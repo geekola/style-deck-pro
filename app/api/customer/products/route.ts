@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
       returnPolicy: products.returnPolicy,
       brandId: products.brandId,
       brandName: brands.name,
+      brandLogoUrl: brands.logoUrl,
     })
     .from(products)
     .innerJoin(brands, eq(products.brandId, brands.id))

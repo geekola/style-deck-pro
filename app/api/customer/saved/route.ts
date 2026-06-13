@@ -54,6 +54,7 @@ export async function GET() {
       price: products.price,
       brandId: products.brandId,
       brandName: brands.name,
+      brandLogoUrl: brands.logoUrl,
       active: products.active,
     })
     .from(savedProducts)

@@ -13,6 +13,7 @@ type SavedProduct = {
   price: number | null;
   brandId: string;
   brandName: string;
+  brandLogoUrl: string | null;
   active: boolean;
   heroImage: string | null;
 };
@@ -135,6 +136,13 @@ export default function SavedPage() {
                             <div className="absolute inset-0 bg-white dark:bg-gray-950/70 flex items-center justify-center">
                               <span className="text-xs text-gray-400 dark:text-gray-500">Unavailable</span>
                             </div>
+                          )}
+                          {item.brandLogoUrl && (
+                            <img
+                              src={item.brandLogoUrl}
+                              alt={item.brandName}
+                              className="absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 border-white object-cover bg-white shadow-md"
+                            />
                           )}
                           <span className="absolute top-2 right-2 text-xs bg-white dark:bg-gray-950/90 rounded-full px-2 py-0.5 font-medium">
                             {item.itemType === "gift" ? "Gift" : item.price != null ? `$${(item.price / 100).toFixed(0)}` : "—"}

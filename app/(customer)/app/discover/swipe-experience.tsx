@@ -14,6 +14,7 @@ type Product = {
   description: string | null;
   price: number | null;
   brandName: string;
+  brandLogoUrl: string | null;
   heroImage: string | null;
 };
 
@@ -85,6 +86,16 @@ function ProductCard({
         </div>
         <div className="text-white/60 text-sm">{product.brandName}</div>
       </div>
+
+      {/* Brand logo badge */}
+      {product.brandLogoUrl && (
+        <img
+          src={product.brandLogoUrl}
+          alt={product.brandName}
+          className="absolute bottom-4 right-4 w-9 h-9 rounded-full border-2 border-white object-cover bg-white shadow-md"
+          draggable={false}
+        />
+      )}
 
       {/* Swipe indicators */}
       {isTop && likeOpacity > 0 && (
