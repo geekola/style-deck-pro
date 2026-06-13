@@ -1,4 +1,5 @@
 import { DashboardNav } from "@/components/dashboard-nav";
+import { getPlatformLogoUrl } from "@/lib/db/queries/platform-settings";
 
 const links = [
   { href: "/admin", label: "Dashboard", exact: true },
@@ -8,14 +9,16 @@ const links = [
   { href: "/admin/account", label: "Account" },
 ];
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const logoUrl = await getPlatformLogoUrl();
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
-      <DashboardNav title="StyleDeck Admin" links={links} />
+      <DashboardNav title="StyleDeck Admin" links={links} logoUrl={logoUrl} />
       {children}
     </div>
   );

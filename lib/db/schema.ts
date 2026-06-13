@@ -452,6 +452,16 @@ export const auditLogs = pgTable(
   ]
 );
 
+// --- Platform Settings -----------------------------------------------------------
+// Singleton row (id always 1) holding platform-wide branding/config. Created by
+// migration 0004_platform_settings.sql.
+
+export const platformSettings = pgTable("platform_settings", {
+  id: integer("id").primaryKey().default(1),
+  logoUrl: text("logo_url"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // --- Relations -----------------------------------------------------------------
 
 export const usersRelations = relations(users, ({ one, many }) => ({

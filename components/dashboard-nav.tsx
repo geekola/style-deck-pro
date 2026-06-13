@@ -15,9 +15,11 @@ export type NavLink = {
 export function DashboardNav({
   title,
   links,
+  logoUrl,
 }: {
   title: string;
   links: NavLink[];
+  logoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -34,7 +36,16 @@ export function DashboardNav({
     <nav className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="font-semibold text-gray-900 dark:text-white">{title}</span>
+          <div className="flex items-center gap-2">
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt=""
+                className="w-6 h-6 rounded object-contain shrink-0"
+              />
+            )}
+            <span className="font-semibold text-gray-900 dark:text-white">{title}</span>
+          </div>
           <div className="flex items-center gap-1">
             {links.map((link) => {
               const active = link.exact

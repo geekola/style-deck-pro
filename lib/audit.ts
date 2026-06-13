@@ -68,4 +68,6 @@ export const AuditAction = {
   USER_ACTIVATED: "user.activated",
   USER_UPDATED: "user.updated",
   USER_DELETED: "user.deleted",
+  // Platform settings
+  PLATFORM_SETTINGS_UPDATED: "platform_settings.updated",
 } as const;
