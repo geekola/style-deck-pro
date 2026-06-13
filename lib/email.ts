@@ -1,8 +1,17 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.FROM_EMAIL ?? "noreply@styledeck.com";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+// Lazily construct the Resend client so that builds (which collect route
+// metadata without runtime env vars) don't throw on a missing API key.
+let resendClient: Resend | null = null;
+function getResend(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 export async function sendInviteEmail(params: {
   to: string;
@@ -14,7 +23,7 @@ export async function sendInviteEmail(params: {
     ? `You've been invited to StyleDeck by ${params.brandName}`
     : "You've been invited to StyleDeck";
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject,
@@ -54,7 +63,7 @@ export async function sendBrandStatusEmail(params: {
     body = `<p>Thank you for applying. After review, we're unable to approve <strong>${params.brandName}</strong> at this time.</p>${reasonHtml}`;
   }
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject,
@@ -63,7 +72,7 @@ export async function sendBrandStatusEmail(params: {
 }
 
 export async function sendPasswordResetEmail(params: { to: string; url: string }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: "Reset your StyleDeck password",
@@ -76,7 +85,7 @@ export async function sendPasswordResetEmail(params: { to: string; url: string }
 }
 
 export async function sendVerificationEmail(params: { to: string; url: string }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: "Verify your StyleDeck email address",
@@ -96,7 +105,7 @@ export async function sendOrderShippedEmail(params: {
   orderId: string;
   trackingNumber?: string | null;
 }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: `Your ${params.brandName} order has shipped`,
@@ -117,7 +126,7 @@ export async function sendOrderNotificationEmail(params: {
   orderType: "purchase" | "gift";
   shippingAddress: object;
 }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: params.to,
     subject: `New ${params.orderType} order -- ${params.productName}`,
