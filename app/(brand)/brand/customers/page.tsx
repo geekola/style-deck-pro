@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  type: string;
-  industry: string;
-  hasAccess: boolean;
-};
+import { CustomersTable, type CustomerRow } from "./customers-table";
 
 export default function BrandCustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
@@ -51,8 +43,14 @@ export default function BrandCustomersPage() {
     setTimeout(() => setInviteSuccess(false), 3000);
   }
 
+  const stats = {
+    total: customers.length,
+    withAccess: customers.filter((c) => c.hasAccess).length,
+    noAccess: customers.filter((c) => !c.hasAccess).length,
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex items-start justify-between mb-8">
         <h1 className="text-2xl font-semibold">Customers</h1>
 
@@ -76,54 +74,9 @@ export default function BrandCustomersPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400 dark:text-gray-500">Loading…</div>
-      ) : customers.length === 0 ? (
-        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-          No customers yet. Send an invite to get started.
-        </div>
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">Loading...</div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-gray-500 dark:text-gray-400 dark:text-gray-500">
-              <th className="pb-3 font-medium">Name</th>
-              <th className="pb-3 font-medium">Type</th>
-              <th className="pb-3 font-medium">Industry</th>
-              <th className="pb-3 font-medium">Access</th>
-              <th className="pb-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
-                <td className="py-3">
-                  <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">{c.email}</div>
-                </td>
-                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.type}</td>
-                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.industry}</td>
-                <td className="py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      c.hasAccess
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {c.hasAccess ? "Granted" : "No access"}
-                  </span>
-                </td>
-                <td className="py-3 text-right">
-                  <button
-                    onClick={() => toggleAccess(c.id, !c.hasAccess)}
-                    className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white"
-                  >
-                    {c.hasAccess ? "Revoke" : "Grant"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <CustomersTable rows={customers} stats={stats} onToggleAccess={toggleAccess} />
       )}
     </div>
   );
