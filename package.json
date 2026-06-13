@@ -16,7 +16,7 @@
     "db:delete-brand": "node scripts/delete-brand.mjs"
   },
   "dependencies": {
-    "next": "15.3.3",
+    "next": "15.3.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "better-auth": "^1.2.7",
@@ -39,6 +39,6 @@
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.19.3",
     "eslint": "^9",
-    "eslint-config-next": "15.3.3"
+    "eslint-config-next": "15.3.8"
   }
 }
