@@ -12,7 +12,7 @@ import {
   brandAccess,
 } from "@/lib/db/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { audit, AuditAction } from "@/lib/audit";
 import { sendOrderNotificationEmail } from "@/lib/email";
 
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
   await assertCustomerHasProductAccess(customer.id, purchaseProducts[0]);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const checkoutSession = await getStripe().checkout.sessions.create({
     mode: "payment",
     line_items: purchaseProducts.map((p) => ({
       price_data: {
