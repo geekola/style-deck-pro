@@ -48,3 +48,6 @@ yarn-error.log*
 # source files
 fashion-swipe-app.jsx
 styledeck-brand-portal.jsx
+
+# stray removed files (OneDrive lock issue prevents deletion)
+*.removed
