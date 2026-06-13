@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBrandAdmin } from "@/lib/auth-session";
 import { db } from "@/lib/db";
-import { products } from "@/lib/db/schema";
+import { products, productImages } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { audit, AuditAction } from "@/lib/audit";
 import { getBrandProduct } from "@/lib/db/queries/brand";
@@ -28,8 +28,16 @@ export async function GET(
   const product = await getBrandProduct(brandId, id);
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { costPrice: _cost, ...safe } = product;
-  return NextResponse.json(safe);
+  const images = await db
+    .select({ id: productImages.id, url: productImages.url, hero: productImages.hero, displayOrder: productImages.displayOrder })
+    .from(productImages)
+    .where(eq(productImages.productId, id))
+    .orderBy(productImages.displayOrder);
+
+  // Note: costPrice is included here — this endpoint is brand-admin scoped
+  // (requireBrandAdmin), so the brand viewing/editing its own product cost
+  // is expected. It must never be exposed via customer-facing routes.
+  return NextResponse.json({ ...product, images });
 }
 
 export async function PUT(
