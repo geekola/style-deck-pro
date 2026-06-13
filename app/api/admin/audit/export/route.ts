@@ -3,7 +3,7 @@ import { requirePlatformAdmin } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { auditLogs, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { buildAuditFilters } from "../route";
+import { buildAuditFilters } from "@/lib/audit-filters";
 
 const MAX_ROWS = 10000;
 
