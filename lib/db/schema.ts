@@ -178,6 +178,7 @@ export const brands = pgTable("brands", {
   status: brandStatusEnum("status").notNull().default("pending"),
   statusReason: text("status_reason"),
   accessPolicy: accessPolicyEnum("access_policy").notNull().default("open"),
+  logoUrl: text("logo_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

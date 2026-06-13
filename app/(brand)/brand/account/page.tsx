@@ -33,12 +33,65 @@ export default function BrandAccountPage() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // Branding (brand logo)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoLoading, setLogoLoading] = useState(true);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
   useEffect(() => {
     if (session?.user) {
       setName(session.user.name ?? "");
       setEmail(session.user.email ?? "");
     }
   }, [session?.user]);
+
+  useEffect(() => {
+    fetch("/api/brand")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setLogoUrl(data.logoUrl ?? null);
+      })
+      .finally(() => setLogoLoading(false));
+  }, []);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    setLogoError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/brand/logo", { method: "POST", body: formData });
+    setLogoUploading(false);
+    e.target.value = "";
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setLogoError(data?.error ?? "Could not upload logo.");
+      return;
+    }
+
+    const data = await res.json();
+    setLogoUrl(data.logoUrl);
+  }
+
+  async function handleRemoveLogo() {
+    setLogoUploading(true);
+    setLogoError(null);
+    const res = await fetch("/api/brand/logo", { method: "DELETE" });
+    setLogoUploading(false);
+
+    if (!res.ok && res.status !== 204) {
+      setLogoError("Could not remove logo.");
+      return;
+    }
+
+    setLogoUrl(null);
+  }
 
   async function handleSaveName() {
     setNameSaving(true);
@@ -133,6 +186,50 @@ export default function BrandAccountPage() {
               </p>
             </div>
             <ThemeToggle />
+          </div>
+        </section>
+
+        {/* Branding */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Branding
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center overflow-hidden shrink-0">
+              {logoLoading ? null : logoUrl ? (
+                <img src={logoUrl} alt="Brand logo" className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-xs text-gray-400">No logo</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Brand logo</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Shown on your products in the customer app. JPEG, PNG, WebP, or SVG, up to 2 MB.
+              </p>
+              <div className="flex gap-2">
+                <label className="px-3.5 py-2 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-50">
+                  {logoUploading ? "Uploading..." : logoUrl ? "Replace" : "Upload"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                    onChange={handleLogoUpload}
+                    disabled={logoUploading}
+                    className="hidden"
+                  />
+                </label>
+                {logoUrl && (
+                  <button
+                    onClick={handleRemoveLogo}
+                    disabled={logoUploading}
+                    className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {logoError && <p className="text-xs text-red-500 mt-1.5">{logoError}</p>}
+            </div>
           </div>
         </section>
 
