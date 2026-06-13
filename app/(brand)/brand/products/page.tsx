@@ -1,13 +1,33 @@
 import Link from "next/link";
 import { requireBrandAdminPage } from "@/lib/auth-session";
 import { getBrandProducts } from "@/lib/db/queries/brand";
+import { ProductsTable } from "./products-table";
 
 export default async function BrandProductsPage() {
   const { brandId } = await requireBrandAdminPage();
-  const products = await getBrandProducts(brandId);
+  const allProducts = await getBrandProducts(brandId);
+
+  const rows = allProducts.map((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    itemType: p.itemType,
+    description: p.description,
+    price: p.price,
+    costPrice: p.costPrice,
+    returnPolicy: p.returnPolicy,
+    active: p.active,
+    createdAt: p.createdAt.toISOString(),
+  }));
+
+  const stats = {
+    total: rows.length,
+    active: rows.filter((p) => p.active).length,
+    inactive: rows.filter((p) => !p.active).length,
+  };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold">Products</h1>
         <div className="flex gap-3">
@@ -26,55 +46,7 @@ export default async function BrandProductsPage() {
         </div>
       </div>
 
-      {products.length === 0 ? (
-        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-          No products yet. Add your first product to get started.
-        </div>
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-gray-500 dark:text-gray-400 dark:text-gray-500">
-              <th className="pb-3 font-medium">Name</th>
-              <th className="pb-3 font-medium">Category</th>
-              <th className="pb-3 font-medium">Type</th>
-              <th className="pb-3 font-medium">Price</th>
-              <th className="pb-3 font-medium">Status</th>
-              <th className="pb-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {products.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900">
-                <td className="py-3 font-medium">{p.name}</td>
-                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
-                <td className="py-3 capitalize text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.itemType}</td>
-                <td className="py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">
-                  {p.price != null ? `$${(p.price / 100).toFixed(2)}` : "—"}
-                </td>
-                <td className="py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      p.active
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {p.active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="py-3 text-right">
-                  <Link
-                    href={`/brand/products/${p.id}`}
-                    className="text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white text-xs"
-                  >
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <ProductsTable rows={rows} stats={stats} />
     </div>
   );
 }

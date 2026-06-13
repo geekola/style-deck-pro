@@ -54,3 +54,6 @@ styledeck-brand-portal.jsx
 
 # superseded by row-actions.tsx (OneDrive lock issue prevents deletion)
 app/(admin)/admin/brands/brand-actions.tsx
+
+# superseded by row-actions.tsx ship panel (OneDrive lock issue prevents deletion)
+app/(brand)/brand/orders/ship-order-button.tsx
