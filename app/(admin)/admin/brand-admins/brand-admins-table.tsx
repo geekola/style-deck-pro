@@ -2,6 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { RowActions } from "./row-actions";
+import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { Tabs } from "@/components/admin/tabs";
+import { Pagination } from "@/components/admin/pagination";
+import { SearchInput, FilterSelect } from "@/components/admin/search-input";
+import { SortableHeader, type SortDir } from "@/components/admin/sortable-header";
 
 export type BrandAdminRow = {
   userId: string;
@@ -17,14 +23,19 @@ export type BrandAdminRow = {
 
 type Tab = "all" | "active" | "suspended";
 type SortKey = "name" | "brand" | "joinedAt";
-type SortDir = "asc" | "desc";
 
 const JOINED_FILTERS = [
-  { value: "all", label: "All time" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-] as const;
+  { value: "all", label: "Joined: All time" },
+  { value: "7", label: "Joined: Last 7 days" },
+  { value: "30", label: "Joined: Last 30 days" },
+  { value: "90", label: "Joined: Last 90 days" },
+];
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "suspended", label: "Suspended" },
+];
 
 const PAGE_SIZE = 10;
 
@@ -93,12 +104,9 @@ export function BrandAdminsTable({
     setPage(1);
   }
 
-  const sortIndicator = (key: SortKey) => (sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "");
-
   return (
     <div>
-      {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <StatCardGrid cols={3}>
         <StatCard label="Total" value={stats.total} active={tab === "all"} onClick={() => setTabAndReset("all")} />
         <StatCard
           label="Active"
@@ -114,67 +122,36 @@ export function BrandAdminsTable({
           onClick={() => setTabAndReset("suspended")}
           accent="red"
         />
-      </div>
+      </StatCardGrid>
 
-      {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <input
-          type="text"
+        <SearchInput
           placeholder="Search by name, email, or brand…"
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
+          onChange={(v) => {
+            setSearch(v);
             setPage(1);
           }}
-          className="flex-1 min-w-[220px] text-sm border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         />
-        <select
+        <FilterSelect
           value={joinedFilter}
-          onChange={(e) => {
-            setJoinedFilter(e.target.value);
+          onChange={(v) => {
+            setJoinedFilter(v);
             setPage(1);
           }}
-          className="text-sm border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 bg-white dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-        >
-          {JOINED_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>
-              Joined: {f.label}
-            </option>
-          ))}
-        </select>
+          options={JOINED_FILTERS}
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4">
-        {(["all", "active", "suspended"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTabAndReset(t)}
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${
-              tab === t
-                ? "border-black dark:border-white text-black dark:text-white"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTabAndReset} />
 
-      {/* Table */}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-gray-500 dark:text-gray-400">
-            <th className="pb-3 font-medium cursor-pointer select-none" onClick={() => toggleSort("name")}>
-              Admin{sortIndicator("name")}
-            </th>
-            <th className="pb-3 font-medium cursor-pointer select-none" onClick={() => toggleSort("brand")}>
-              Brand{sortIndicator("brand")}
-            </th>
+            <SortableHeader label="Admin" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
+            <SortableHeader label="Brand" sortKey="brand" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
             <th className="pb-3 font-medium">Status</th>
-            <th className="pb-3 font-medium cursor-pointer select-none" onClick={() => toggleSort("joinedAt")}>
-              Joined{sortIndicator("joinedAt")}
-            </th>
+            <SortableHeader label="Joined" sortKey="joinedAt" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
             <th className="pb-3" />
           </tr>
         </thead>
@@ -192,89 +169,8 @@ export function BrandAdminsTable({
         </tbody>
       </table>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-4 text-sm text-gray-500 dark:text-gray-400">
-        <span>
-          {filtered.length === 0
-            ? "0 results"
-            : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
-                currentPage * PAGE_SIZE,
-                filtered.length
-              )} of ${filtered.length}`}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            disabled={currentPage <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800/60"
-          >
-            Previous
-          </button>
-          <span className="px-2 py-1 tabular-nums">
-            {currentPage} / {pageCount}
-          </span>
-          <button
-            disabled={currentPage >= pageCount}
-            onClick={() => setPage((p) => p + 1)}
-            className="border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800/60"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <Pagination page={currentPage} pageCount={pageCount} totalCount={filtered.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  active,
-  onClick,
-  accent,
-}: {
-  label: string;
-  value: number;
-  active: boolean;
-  onClick: () => void;
-  accent?: "green" | "red";
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`text-left border rounded-lg p-4 transition-colors ${
-        active
-          ? "border-black dark:border-white bg-gray-50 dark:bg-gray-800/60"
-          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/60"
-      }`}
-    >
-      <div
-        className={`text-2xl font-semibold ${
-          accent === "green"
-            ? "text-green-700 dark:text-green-400"
-            : accent === "red"
-              ? "text-red-700 dark:text-red-400"
-              : ""
-        }`}
-      >
-        {value}
-      </div>
-      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</div>
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: "active" | "suspended" }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-        status === "active"
-          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-      }`}
-    >
-      {status}
-    </span>
   );
 }
 
