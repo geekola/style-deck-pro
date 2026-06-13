@@ -57,7 +57,7 @@ export default async function AdminBrandsPage() {
           </h2>
           <div className="space-y-3">
             {pending.map((b) => (
-              <div key={b.id} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+              <div key={b.id} id={`brand-${b.id}`} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{b.name}</div>
@@ -81,7 +81,7 @@ export default async function AdminBrandsPage() {
         ) : (
           <div className="space-y-3">
             {approved.map((b) => (
-              <div key={b.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
+              <div key={b.id} id={`brand-${b.id}`} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{b.name}</div>
@@ -110,7 +110,7 @@ export default async function AdminBrandsPage() {
           </h2>
           <div className="space-y-3">
             {suspended.map((b) => (
-              <div key={b.id} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+              <div key={b.id} id={`brand-${b.id}`} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{b.name}</div>
@@ -136,7 +136,7 @@ export default async function AdminBrandsPage() {
           </h2>
           <div className="space-y-3">
             {rejected.map((b) => (
-              <div key={b.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
+              <div key={b.id} id={`brand-${b.id}`} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{b.name}</div>

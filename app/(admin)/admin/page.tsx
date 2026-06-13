@@ -43,6 +43,7 @@ export default async function AdminDashboardPage() {
   const nav = [
     { href: "/admin/brands", label: "Brands", description: "Review applications, manage access policies" },
     { href: "/admin/users", label: "Users", description: "View and manage customer accounts" },
+    { href: "/admin/brand-admins", label: "Brand Admins", description: "View and manage all brand admin accounts" },
     { href: "/admin/audit", label: "Audit Log", description: "Platform-wide activity log" },
   ];
 
@@ -65,7 +66,7 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {nav.map((item) => (
           <Link
             key={item.href}
