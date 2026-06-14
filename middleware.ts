@@ -6,6 +6,8 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/invite",           // /invite/[token] — registration via invite
   "/brand/register",   // brand registration form
   "/api/auth",         // Better Auth handlers
