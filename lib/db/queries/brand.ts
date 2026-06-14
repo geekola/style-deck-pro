@@ -114,6 +114,7 @@ export async function getBrandPendingOrders(brandId: string, limit = 5) {
   return db
     .select({
       id: orders.id,
+      productId: orders.productId,
       productName: products.name,
       customerName: users.name,
       orderType: orders.orderType,
@@ -136,6 +137,7 @@ export async function getBrandRecentSaves(brandId: string, limit = 5) {
   return db
     .select({
       id: savedProducts.id,
+      productId: savedProducts.productId,
       productName: products.name,
       customerName: users.name,
       at: savedProducts.savedAt,

@@ -28,13 +28,14 @@ export default async function BrandDashboardPage() {
   const pendingOrdersCount = orders.filter((o) => o.status === "pending").length;
 
   type ActivityItem =
-    | { type: "save"; id: string; productName: string; customerName: string; at: Date }
+    | { type: "save"; id: string; productId: string; productName: string; customerName: string; at: Date }
     | { type: "access"; id: string; customerName: string; at: Date };
 
   const activity: ActivityItem[] = [
     ...recentSaves.map((s) => ({
       type: "save" as const,
       id: s.id,
+      productId: s.productId,
       productName: s.productName,
       customerName: s.customerName,
       at: s.at,
@@ -76,13 +77,13 @@ export default async function BrandDashboardPage() {
                   key={o.id}
                   className="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm"
                 >
-                  <div className="min-w-0">
+                  <Link href={`/brand/products/${o.productId}`} className="min-w-0 hover:underline">
                     <div className="font-medium truncate">{o.productName}</div>
                     <div className="text-gray-400 dark:text-gray-500 text-xs truncate">
                       {o.customerName} ·{" "}
                       {o.orderType === "gift" ? "Gift" : `$${(o.amountCents / 100).toFixed(2)}`}
                     </div>
-                  </div>
+                  </Link>
                   <DashboardShipButton orderId={o.id} />
                 </li>
               ))}
@@ -106,47 +107,40 @@ export default async function BrandDashboardPage() {
             <p className="text-sm text-gray-400 dark:text-gray-500">No recent activity yet.</p>
           ) : (
             <ul className="space-y-2">
-              {activity.map((item) => (
-                <li
-                  key={`${item.type}-${item.id}`}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm"
-                >
-                  {item.type === "save" ? (
-                    <span>
-                      <span className="font-medium">{item.customerName}</span> saved{" "}
-                      <span className="font-medium">{item.productName}</span>
-                    </span>
-                  ) : (
+              {activity.map((item) =>
+                item.type === "save" ? (
+                  <li key={`save-${item.id}`}>
+                    <Link
+                      href={`/brand/products/${item.productId}`}
+                      className="block border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                    >
+                      <span>
+                        <span className="font-medium">{item.customerName}</span> saved{" "}
+                        <span className="font-medium">{item.productName}</span>
+                      </span>
+                      <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
+                        {item.at.toLocaleDateString()}
+                      </div>
+                    </Link>
+                  </li>
+                ) : (
+                  <li
+                    key={`access-${item.id}`}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm"
+                  >
                     <span>
                       <span className="font-medium">{item.customerName}</span> was granted access
                     </span>
-                  )}
-                  <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
-                    {item.at.toLocaleDateString()}
-                  </div>
-                </li>
-              ))}
+                    <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
+                      {item.at.toLocaleDateString()}
+                    </div>
+                  </li>
+                )
+              )}
             </ul>
           )}
         </section>
       </div>
-
-      <nav className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { href: "/brand/products", label: "Products" },
-          { href: "/brand/customers", label: "Customers" },
-          { href: "/brand/gifting", label: "Gifting" },
-          { href: "/brand/orders", label: "Orders" },
-        ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 text-center"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
     </div>
   );
 }
