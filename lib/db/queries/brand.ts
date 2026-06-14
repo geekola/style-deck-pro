@@ -6,8 +6,8 @@
  */
 
 import { db } from "@/lib/db";
-import { brands, brandAdmins, products, brandAccess, giftingAllowances, orders } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { brands, brandAdmins, products, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -107,4 +107,60 @@ export async function getBrandOrder(brandId: string, orderId: string) {
     .where(and(eq(orders.id, orderId), eq(orders.brandId, brandId)))
     .limit(1);
   return order ?? null;
+}
+
+// Oldest unshipped orders first — used for the "Needs shipping" dashboard list.
+export async function getBrandPendingOrders(brandId: string, limit = 5) {
+  return db
+    .select({
+      id: orders.id,
+      productName: products.name,
+      customerName: users.name,
+      orderType: orders.orderType,
+      amountCents: orders.amountCents,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .innerJoin(customers, eq(orders.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(and(eq(orders.brandId, brandId), eq(orders.status, "pending")))
+    .orderBy(orders.createdAt)
+    .limit(limit);
+}
+
+// ─── Activity feed ──────────────────────────────────────────────────────────
+
+// Most recent product saves (swipe-right) — used for the dashboard activity feed.
+export async function getBrandRecentSaves(brandId: string, limit = 5) {
+  return db
+    .select({
+      id: savedProducts.id,
+      productName: products.name,
+      customerName: users.name,
+      at: savedProducts.savedAt,
+    })
+    .from(savedProducts)
+    .innerJoin(products, eq(savedProducts.productId, products.id))
+    .innerJoin(customers, eq(savedProducts.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(eq(products.brandId, brandId))
+    .orderBy(desc(savedProducts.savedAt))
+    .limit(limit);
+}
+
+// Most recently granted customer access — used for the dashboard activity feed.
+export async function getBrandRecentAccessGrants(brandId: string, limit = 5) {
+  return db
+    .select({
+      id: brandAccess.id,
+      customerName: users.name,
+      at: brandAccess.grantedAt,
+    })
+    .from(brandAccess)
+    .innerJoin(customers, eq(brandAccess.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(eq(brandAccess.brandId, brandId))
+    .orderBy(desc(brandAccess.grantedAt))
+    .limit(limit);
 }
