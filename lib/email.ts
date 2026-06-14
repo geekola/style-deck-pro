@@ -13,6 +13,25 @@ function getResend(): Resend {
   return resendClient;
 }
 
+// Resend's SDK doesn't throw on API errors -- it returns { data, error }.
+// Without this check, a failed send (e.g. unverified domain, sandbox sender
+// restrictions) is silently swallowed and the caller has no idea the email
+// never went out. Log loudly so failures show up in server logs.
+type SendEmailParams = Parameters<Resend["emails"]["send"]>[0];
+
+async function sendEmail(params: SendEmailParams) {
+  const { data, error } = await getResend().emails.send(params);
+  if (error) {
+    console.error("[email] Resend send failed", {
+      to: "to" in params ? params.to : undefined,
+      subject: "subject" in params ? params.subject : undefined,
+      error,
+    });
+    return { success: false as const, error };
+  }
+  return { success: true as const, data };
+}
+
 export async function sendInviteEmail(params: {
   to: string;
   token: string;
@@ -23,7 +42,7 @@ export async function sendInviteEmail(params: {
     ? `You've been invited to StyleDeck by ${params.brandName}`
     : "You've been invited to StyleDeck";
 
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject,
@@ -63,7 +82,7 @@ export async function sendBrandStatusEmail(params: {
     body = `<p>Thank you for applying. After review, we're unable to approve <strong>${params.brandName}</strong> at this time.</p>${reasonHtml}`;
   }
 
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject,
@@ -72,7 +91,7 @@ export async function sendBrandStatusEmail(params: {
 }
 
 export async function sendPasswordResetEmail(params: { to: string; url: string }) {
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject: "Reset your StyleDeck password",
@@ -85,7 +104,7 @@ export async function sendPasswordResetEmail(params: { to: string; url: string }
 }
 
 export async function sendVerificationEmail(params: { to: string; url: string }) {
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject: "Verify your StyleDeck email address",
@@ -105,7 +124,7 @@ export async function sendOrderShippedEmail(params: {
   orderId: string;
   trackingNumber?: string | null;
 }) {
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject: `Your ${params.brandName} order has shipped`,
@@ -126,7 +145,7 @@ export async function sendOrderNotificationEmail(params: {
   orderType: "purchase" | "gift";
   shippingAddress: object;
 }) {
-  await getResend().emails.send({
+  return sendEmail({
     from: FROM,
     to: params.to,
     subject: `New ${params.orderType} order -- ${params.productName}`,
