@@ -4,11 +4,6 @@ import { users, brands, brandAdmins, customers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getSession } from "@/lib/auth-session";
 
-if (process.env.NODE_ENV === "production") {
-  // Fail at module load time so the route never exists in production builds
-  throw new Error("Dev switch-role route must not be used in production");
-}
-
 const VALID_ROLES = ["platform_admin", "brand_admin", "customer"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
