@@ -19,6 +19,7 @@ export async function GET() {
       createdAt: orders.createdAt,
       shippedAt: orders.shippedAt,
       productName: products.name,
+      customerId: orders.customerId,
       customerName: users.name,
     })
     .from(orders)

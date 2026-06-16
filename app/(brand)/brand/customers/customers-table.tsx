@@ -211,7 +211,6 @@ function Row({
   const router = useRouter();
 
   const actions: RowAction[] = [
-    { key: "view", label: "View profile", href: `/brand/customers/${row.id}` },
     {
       key: "toggle-access",
       label: row.hasAccess ? "Revoke access" : "Grant access",

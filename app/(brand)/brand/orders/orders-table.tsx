@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RowActions } from "./row-actions";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { Tabs } from "@/components/admin/tabs";
 import { Pagination } from "@/components/admin/pagination";
@@ -161,7 +160,6 @@ export function OrdersTable({
             <th className="pb-3 font-medium">Type</th>
             <th className="pb-3 font-medium">Status</th>
             <SortableHeader label="Created" sortKey="createdAt" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
-            <th className="pb-3" />
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -170,7 +168,7 @@ export function OrdersTable({
           ))}
           {pageRows.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+              <td colSpan={5} className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm">
                 No orders found.
               </td>
             </tr>
@@ -220,9 +218,6 @@ function Row({ row }: { row: OrderRow }) {
       </td>
       <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
         {new Date(row.createdAt).toLocaleDateString()}
-      </td>
-      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-        <RowActions row={row} />
       </td>
     </tr>
   );

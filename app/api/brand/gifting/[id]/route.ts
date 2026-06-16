@@ -9,6 +9,7 @@ import { audit, AuditAction } from "@/lib/audit";
 const updateSchema = z.object({
   amountCents: z.number().int().nonnegative().optional(),
   periodType: z.enum(["rolling", "calendar"]).optional(),
+  periodDays: z.number().int().positive().nullable().optional(),
   periodStart: z.string().datetime().optional(),
   reset: z.boolean().optional(), // manual reset of usedCents
 });
@@ -38,6 +39,7 @@ export async function PUT(
   const updates: Partial<typeof giftingAllowances.$inferInsert> = {};
   if (parsed.data.amountCents !== undefined) updates.amountCents = parsed.data.amountCents;
   if (parsed.data.periodType !== undefined) updates.periodType = parsed.data.periodType;
+  if ("periodDays" in parsed.data) updates.periodDays = parsed.data.periodDays ?? null;
   if (parsed.data.periodStart !== undefined) updates.periodStart = new Date(parsed.data.periodStart);
   if (parsed.data.reset) {
     updates.usedCents = 0;

@@ -354,6 +354,7 @@ export const giftingAllowances = pgTable(
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     periodType: periodTypeEnum("period_type").notNull(),
+    periodDays: integer("period_days"),
     amountCents: integer("amount_cents").notNull(),
     usedCents: integer("used_cents").notNull().default(0),
     periodStart: timestamp("period_start").notNull(),
@@ -526,3 +527,32 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   orders: many(orders),
 }));
 
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+  product: one(products, { fields: [productImages.productId], references: [products.id] }),
+}));
+
+export const swipeEventsRelations = relations(swipeEvents, ({ one }) => ({
+  customer: one(customers, { fields: [swipeEvents.customerId], references: [customers.id] }),
+  product: one(products, { fields: [swipeEvents.productId], references: [products.id] }),
+}));
+
+export const savedProductsRelations = relations(savedProducts, ({ one }) => ({
+  customer: one(customers, { fields: [savedProducts.customerId], references: [customers.id] }),
+  product: one(products, { fields: [savedProducts.productId], references: [products.id] }),
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  customer: one(customers, { fields: [orders.customerId], references: [customers.id] }),
+  product: one(products, { fields: [orders.productId], references: [products.id] }),
+  brand: one(brands, { fields: [orders.brandId], references: [brands.id] }),
+}));
+
+export const giftingAllowancesRelations = relations(giftingAllowances, ({ one }) => ({
+  brand: one(brands, { fields: [giftingAllowances.brandId], references: [brands.id] }),
+  customer: one(customers, { fields: [giftingAllowances.customerId], references: [customers.id] }),
+}));
+
+export const brandAccessRelations = relations(brandAccess, ({ one }) => ({
+  brand: one(brands, { fields: [brandAccess.brandId], references: [brands.id] }),
+  customer: one(customers, { fields: [brandAccess.customerId], references: [customers.id] }),
+}));

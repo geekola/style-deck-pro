@@ -12,8 +12,11 @@ type Allowance = {
   amountCents: number;
   usedCents: number;
   periodStart: string;
+  periodDays: number | null;
   manualResetAt: string | null;
 };
+
+type UIPeriodType = "30" | "60" | "90" | "custom";
 
 type Customer = {
   id: string;
@@ -74,7 +77,7 @@ export default function BrandGiftingPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
-  const [editPeriodType, setEditPeriodType] = useState<"rolling" | "calendar">("rolling");
+  const [editUIPeriod, setEditUIPeriod] = useState<UIPeriodType>("30");
   const [editPeriodStart, setEditPeriodStart] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -114,7 +117,16 @@ export default function BrandGiftingPage() {
   function startEdit(a: Allowance) {
     setEditingId(a.id);
     setEditAmount((a.amountCents / 100).toString());
-    setEditPeriodType(a.periodType);
+    // Derive UI period type from stored data
+    if (a.periodType === "calendar") {
+      setEditUIPeriod("custom");
+    } else if (a.periodDays === 60) {
+      setEditUIPeriod("60");
+    } else if (a.periodDays === 90) {
+      setEditUIPeriod("90");
+    } else {
+      setEditUIPeriod("30");
+    }
     setEditPeriodStart(a.periodStart ? a.periodStart.slice(0, 10) : "");
     setEditError(null);
   }
@@ -130,10 +142,21 @@ export default function BrandGiftingPage() {
       setEditError("Enter an amount greater than $0.");
       return;
     }
+    if (editUIPeriod === "custom" && !editPeriodStart) {
+      setEditError("Enter a start date for the custom period.");
+      return;
+    }
     setSaving(true);
     setEditError(null);
-    const body: Record<string, unknown> = { amountCents, periodType: editPeriodType };
-    if (editPeriodStart) body.periodStart = new Date(editPeriodStart).toISOString();
+    const isCustom = editUIPeriod === "custom";
+    const periodDays = isCustom ? null : parseInt(editUIPeriod, 10);
+    const body: Record<string, unknown> = {
+      amountCents,
+      periodType: isCustom ? "calendar" : "rolling",
+      periodDays,
+    };
+    if (isCustom && editPeriodStart) body.periodStart = new Date(editPeriodStart).toISOString();
+    else if (!isCustom) body.periodStart = new Date().toISOString();
     const res = await fetch(`/api/brand/gifting/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -160,7 +183,13 @@ export default function BrandGiftingPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-8">Gifting allowances</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold">Gifting allowances</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Rolling periods reset manually — use the Reset usage button when the period expires.
+          Custom periods let you set a specific start date; usage resets at the start of each calendar month.
+        </p>
+      </div>
 
       {!loading && (
         <AddAllowanceForm customers={customersWithoutAllowance} onCreated={load} />
@@ -192,7 +221,13 @@ export default function BrandGiftingPage() {
                       {a.customerName}
                     </button>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 space-x-2">
-                      <span className="capitalize">{a.periodType} period</span>
+                      <span>
+                        {a.periodType === "rolling" && a.periodDays
+                          ? `${a.periodDays}-day rolling period`
+                          : a.periodType === "calendar"
+                            ? "Custom period"
+                            : "Rolling period"}
+                      </span>
                       <span className="text-gray-300 dark:text-gray-600">·</span>
                       <span>Started {fmtDate(a.periodStart)}</span>
                       {a.periodType === "calendar" && (
@@ -248,26 +283,30 @@ export default function BrandGiftingPage() {
                         className={inputClass}
                       />
                     </div>
-                    <div className="w-36">
-                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period type</label>
+                    <div className="w-44">
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period</label>
                       <select
-                        value={editPeriodType}
-                        onChange={(e) => setEditPeriodType(e.target.value as "rolling" | "calendar")}
+                        value={editUIPeriod}
+                        onChange={(e) => setEditUIPeriod(e.target.value as UIPeriodType)}
                         className={inputClass}
                       >
-                        <option value="rolling">Rolling</option>
-                        <option value="calendar">Calendar</option>
+                        <option value="30">30 days (rolling)</option>
+                        <option value="60">60 days (rolling)</option>
+                        <option value="90">90 days (rolling)</option>
+                        <option value="custom">Custom (pick start date)</option>
                       </select>
                     </div>
-                    <div className="w-44">
-                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period start</label>
-                      <input
-                        type="date"
-                        value={editPeriodStart}
-                        onChange={(e) => setEditPeriodStart(e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
+                    {editUIPeriod === "custom" && (
+                      <div className="w-44">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Start date</label>
+                        <input
+                          type="date"
+                          value={editPeriodStart}
+                          onChange={(e) => setEditPeriodStart(e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
                     <button
                       onClick={() => handleSaveEdit(a.id)}
                       disabled={saving}
@@ -326,7 +365,7 @@ function AddAllowanceForm({
 }) {
   const [customerId, setCustomerId] = useState("");
   const [amount, setAmount] = useState("");
-  const [periodType, setPeriodType] = useState<"rolling" | "calendar">("rolling");
+  const [uiPeriod, setUIPeriod] = useState<UIPeriodType>("30");
   const [periodStart, setPeriodStart] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -340,10 +379,22 @@ function AddAllowanceForm({
       setError("Choose a customer and enter an amount greater than $0.");
       return;
     }
+    if (uiPeriod === "custom" && !periodStart) {
+      setError("Enter a start date for the custom period.");
+      return;
+    }
 
     setSubmitting(true);
-    const body: Record<string, unknown> = { customerId, amountCents, periodType };
-    if (periodStart) body.periodStart = new Date(periodStart).toISOString();
+    const isCustom = uiPeriod === "custom";
+    const periodDays = isCustom ? null : parseInt(uiPeriod, 10);
+    const body: Record<string, unknown> = {
+      customerId,
+      amountCents,
+      periodType: isCustom ? "calendar" : "rolling",
+      periodDays,
+    };
+    if (isCustom && periodStart) body.periodStart = new Date(periodStart).toISOString();
+    else if (!isCustom) body.periodStart = new Date().toISOString();
 
     const res = await fetch("/api/brand/gifting", {
       method: "POST",
@@ -360,7 +411,7 @@ function AddAllowanceForm({
 
     setCustomerId("");
     setAmount("");
-    setPeriodType("rolling");
+    setUIPeriod("30");
     setPeriodStart("");
     setSubmitting(false);
     onCreated();
@@ -402,27 +453,31 @@ function AddAllowanceForm({
         />
       </div>
 
-      <div className="w-36">
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period type</label>
+      <div className="w-52">
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period</label>
         <select
-          value={periodType}
-          onChange={(e) => setPeriodType(e.target.value as "rolling" | "calendar")}
+          value={uiPeriod}
+          onChange={(e) => setUIPeriod(e.target.value as UIPeriodType)}
           className={inputClass}
         >
-          <option value="rolling">Rolling</option>
-          <option value="calendar">Calendar</option>
+          <option value="30">30 days (rolling)</option>
+          <option value="60">60 days (rolling)</option>
+          <option value="90">90 days (rolling)</option>
+          <option value="custom">Custom (pick start date)</option>
         </select>
       </div>
 
-      <div className="w-44">
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Period start (optional)</label>
-        <input
-          type="date"
-          value={periodStart}
-          onChange={(e) => setPeriodStart(e.target.value)}
-          className={inputClass}
-        />
-      </div>
+      {uiPeriod === "custom" && (
+        <div className="w-44">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Start date</label>
+          <input
+            type="date"
+            value={periodStart}
+            onChange={(e) => setPeriodStart(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+      )}
 
       <button
         type="submit"

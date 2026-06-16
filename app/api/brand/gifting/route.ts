@@ -20,6 +20,7 @@ export async function GET() {
       customerId: giftingAllowances.customerId,
       customerName: users.name,
       periodType: giftingAllowances.periodType,
+      periodDays: giftingAllowances.periodDays,
       amountCents: giftingAllowances.amountCents,
       usedCents: giftingAllowances.usedCents,
       periodStart: giftingAllowances.periodStart,
@@ -37,6 +38,7 @@ const createSchema = z.object({
   customerId: z.string().uuid(),
   amountCents: z.number().int().positive(),
   periodType: z.enum(["rolling", "calendar"]),
+  periodDays: z.number().int().positive().nullable().optional(),
   periodStart: z.string().datetime().optional(),
 });
 
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { customerId, amountCents, periodType } = parsed.data;
+  const { customerId, amountCents, periodType, periodDays } = parsed.data;
   const periodStart = parsed.data.periodStart ? new Date(parsed.data.periodStart) : new Date();
 
   // Verify the customer exists and is active
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   const [row] = await db
     .insert(giftingAllowances)
-    .values({ brandId, customerId, amountCents, periodType, periodStart })
+    .values({ brandId, customerId, amountCents, periodType, periodDays: periodDays ?? null, periodStart })
     .onConflictDoNothing()
     .returning({ id: giftingAllowances.id });
 

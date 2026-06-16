@@ -93,7 +93,6 @@ export function RowActions({ row }: { row: ProductRow }) {
   }
 
   const actions: RowAction[] = [
-    { key: "edit", label: "Edit", href: `/brand/products/${row.id}` },
     {
       key: "toggle-active",
       label: row.active ? "Deactivate" : "Activate",

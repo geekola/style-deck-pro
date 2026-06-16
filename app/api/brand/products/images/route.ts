@@ -120,7 +120,13 @@ export async function DELETE(request: NextRequest) {
   const product = await getBrandProduct(brandId, image.productId);
   if (!product) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await del(image.url);
+  // Best-effort blob deletion — don't let blob errors block the DB delete
+  try {
+    await del(image.url);
+  } catch {
+    // Log but continue — orphaned blob is preferable to a broken UI
+    console.warn("Failed to delete blob:", image.url);
+  }
   await db.delete(productImages).where(eq(productImages.id, imageId));
 
   return new Response(null, { status: 204 });

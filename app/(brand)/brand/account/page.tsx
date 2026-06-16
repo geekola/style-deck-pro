@@ -7,7 +7,6 @@ import {
   changeEmail,
   changePassword,
 } from "@/lib/auth-client";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TeamSection } from "./team-section";
 import { COUNTRIES } from "@/components/country-select";
 
@@ -352,18 +351,6 @@ export default function BrandAccountPage() {
                 {brandSaved ? "Saved ✓" : brandSaving ? "Saving..." : "Save brand settings"}
               </button>
             </div>
-          </div>
-        </section>
-
-        {/* Appearance */}
-        <section className="pb-8">
-          <SectionHeader title="Appearance" />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Theme</p>
-              <p className="text-xs text-gray-400 mt-0.5">Switch between light and dark mode.</p>
-            </div>
-            <ThemeToggle />
           </div>
         </section>
 
