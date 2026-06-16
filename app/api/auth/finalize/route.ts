@@ -53,7 +53,11 @@ export async function GET(request: NextRequest) {
   }
 
   const role = session.user.role as string;
-  const destination = ROLE_DESTINATIONS[role] ?? "/login";
+  // Dev switcher account always lands on /dev regardless of current role
+  const destination =
+    session.user.email === "dev@styledeck.test"
+      ? "/dev"
+      : (ROLE_DESTINATIONS[role] ?? "/login");
 
   const response = NextResponse.redirect(
     new URL(destination, process.env.BETTER_AUTH_URL!)
