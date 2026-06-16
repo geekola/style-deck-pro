@@ -7,15 +7,7 @@ import { ActionsMenu, type RowAction } from "@/components/admin/actions-menu";
 
 type Mode = "none" | "ship";
 
-export function RowActions({
-  row,
-  expanded,
-  onToggleDetails,
-}: {
-  row: OrderRow;
-  expanded: boolean;
-  onToggleDetails: () => void;
-}) {
+export function RowActions({ row }: { row: OrderRow }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("none");
   const [tracking, setTracking] = useState("");
@@ -72,8 +64,7 @@ export function RowActions({
   }
 
   const actions: RowAction[] = [
-    { key: "details", label: expanded ? "Hide details" : "View details", onClick: onToggleDetails },
-    { key: "invoice", label: "View invoice", href: `/api/brand/orders/${row.id}/invoice` },
+    { key: "invoice", label: "Print invoice", href: `/api/brand/orders/${row.id}/invoice` },
   ];
 
   if (row.status === "pending") {

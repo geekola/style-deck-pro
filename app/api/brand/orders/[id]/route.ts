@@ -8,6 +8,49 @@ import { audit, AuditAction } from "@/lib/audit";
 import { getBrandOrder } from "@/lib/db/queries/brand";
 import { sendOrderShippedEmail } from "@/lib/email";
 
+// GET /api/brand/orders/[id]
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { brandId } = await requireBrandAdmin();
+  const { id } = await params;
+
+  const [row] = await db
+    .select({
+      id: orders.id,
+      orderType: orders.orderType,
+      status: orders.status,
+      amountCents: orders.amountCents,
+      trackingNumber: orders.trackingNumber,
+      shippingAddress: orders.shippingAddress,
+      createdAt: orders.createdAt,
+      shippedAt: orders.shippedAt,
+      productId: products.id,
+      productName: products.name,
+      productCategory: products.category,
+      brandName: brands.name,
+      customerId: customers.id,
+      customerName: users.name,
+      customerEmail: users.email,
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .innerJoin(brands, eq(orders.brandId, brands.id))
+    .innerJoin(customers, eq(orders.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(and(eq(orders.id, id), eq(orders.brandId, brandId)))
+    .limit(1);
+
+  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    shippedAt: row.shippedAt ? row.shippedAt.toISOString() : null,
+  });
+}
+
 const schema = z.object({
   status: z.literal("shipped"),
   trackingNumber: z.string().min(1).max(200).optional(),

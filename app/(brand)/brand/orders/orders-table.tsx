@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RowActions } from "./row-actions";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { Tabs } from "@/components/admin/tabs";
@@ -183,76 +184,46 @@ export function OrdersTable({
 }
 
 function Row({ row }: { row: OrderRow }) {
-  const [expanded, setExpanded] = useState(false);
-  const addr = row.shippingAddress;
+  const router = useRouter();
 
   return (
-    <>
-      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-        <td className="py-3 font-medium">{row.productName}</td>
-        <td className="py-3">
-          <div>{row.customerName}</div>
-          <div className="text-xs text-gray-400 dark:text-gray-500">{row.customerEmail}</div>
-        </td>
-        <td className="py-3">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-              row.orderType === "gift"
-                ? "bg-purple-100 text-purple-700"
-                : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-            }`}
-          >
-            {row.orderType === "gift" ? "Gift" : `Purchase · $${(row.amountCents / 100).toFixed(2)}`}
-          </span>
-        </td>
-        <td className="py-3">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-              row.status === "shipped"
-                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {row.status === "shipped" ? "Shipped" : "Pending"}
-          </span>
-        </td>
-        <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
-          {new Date(row.createdAt).toLocaleDateString()}
-        </td>
-        <td className="py-3 text-right">
-          <RowActions row={row} expanded={expanded} onToggleDetails={() => setExpanded((e) => !e)} />
-        </td>
-      </tr>
-
-      {expanded && (
-        <tr className="bg-gray-50 dark:bg-gray-900/60">
-          <td colSpan={6} className="px-3 py-3 text-xs text-gray-600 dark:text-gray-400">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="truncate">
-                <span className="text-gray-400 dark:text-gray-500">Order ID:</span> {row.id}
-              </div>
-              {row.trackingNumber && (
-                <div>
-                  <span className="text-gray-400 dark:text-gray-500">Tracking:</span>{" "}
-                  <span className="font-medium">{row.trackingNumber}</span>
-                </div>
-              )}
-              {row.shippedAt && (
-                <div>
-                  <span className="text-gray-400 dark:text-gray-500">Shipped:</span>{" "}
-                  {new Date(row.shippedAt).toLocaleDateString()}
-                </div>
-              )}
-              {addr && (
-                <div className="col-span-2">
-                  <span className="text-gray-400 dark:text-gray-500">Shipping address:</span>{" "}
-                  {addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} {addr.postalCode}, {addr.country}
-                </div>
-              )}
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+    <tr
+      className="hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+      onClick={() => router.push(`/brand/orders/${row.id}`)}
+    >
+      <td className="py-3 font-medium">{row.productName}</td>
+      <td className="py-3">
+        <div>{row.customerName}</div>
+        <div className="text-xs text-gray-400 dark:text-gray-500">{row.customerEmail}</div>
+      </td>
+      <td className="py-3">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+            row.orderType === "gift"
+              ? "bg-purple-100 text-purple-700"
+              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+          }`}
+        >
+          {row.orderType === "gift" ? "Gift" : `Purchase · $${(row.amountCents / 100).toFixed(2)}`}
+        </span>
+      </td>
+      <td className="py-3">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+            row.status === "shipped"
+              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+              : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {row.status === "shipped" ? "Shipped" : "Pending"}
+        </span>
+      </td>
+      <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
+        {new Date(row.createdAt).toLocaleDateString()}
+      </td>
+      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        <RowActions row={row} />
+      </td>
+    </tr>
   );
 }
