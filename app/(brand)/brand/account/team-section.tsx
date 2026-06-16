@@ -21,7 +21,6 @@ export function TeamSection() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
-  // Add form state
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -42,20 +41,17 @@ export function TeamSection() {
     setSubmitting(true);
     setAddError(null);
     setAddResult(null);
-
     const res = await fetch("/api/brand/admins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
     const data = await res.json().catch(() => ({}));
-
     if (!res.ok) {
       setAddError(data.error ?? "Something went wrong.");
       setSubmitting(false);
       return;
     }
-
     setAddResult(data);
     setEmail("");
     setSubmitting(false);
@@ -66,7 +62,6 @@ export function TeamSection() {
     if (!confirm(`Remove ${admin.email} from this brand's team?`)) return;
     setRemovingId(admin.userId);
     setListError(null);
-
     const res = await fetch(`/api/brand/admins/${admin.userId}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -74,18 +69,13 @@ export function TeamSection() {
       setRemovingId(null);
       return;
     }
-
     setRemovingId(null);
     await load();
   }
 
   return (
-    <section>
-      <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-        Team
-      </h2>
-
-      <p className="text-xs text-gray-400 mb-3">
+    <div>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
         Other people who can manage this brand&apos;s products, customers, gifting, and orders.
       </p>
 
@@ -99,14 +89,12 @@ export function TeamSection() {
           {admins.map((a) => (
             <div
               key={a.userId}
-              className="flex items-center justify-between gap-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5"
+              className="flex items-center justify-between gap-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2"
             >
               <div className="truncate">
                 <span className="font-medium text-gray-900 dark:text-white">{a.name}</span>{" "}
                 <span className="text-gray-500 dark:text-gray-400">{a.email}</span>
-                {a.isYou && (
-                  <span className="ml-2 text-xs text-gray-400">(you)</span>
-                )}
+                {a.isYou && <span className="ml-2 text-xs text-gray-400">(you)</span>}
                 {a.status === "suspended" && (
                   <span className="ml-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
                     Suspended
@@ -136,12 +124,12 @@ export function TeamSection() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="teammate@example.com"
-          className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+          className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         />
         <button
           type="submit"
           disabled={submitting || !email}
-          className="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 shrink-0"
+          className="px-4 py-2 rounded-md text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 shrink-0"
         >
           {submitting ? "Adding..." : "Add admin"}
         </button>
@@ -157,15 +145,18 @@ export function TeamSection() {
                 Created brand admin <span className="font-medium">{addResult.email}</span>.
               </p>
               <p className="mt-1">
-                Temporary password: <span className="font-mono font-medium">{addResult.tempPassword}</span>
+                Temporary password:{" "}
+                <span className="font-mono font-medium">{addResult.tempPassword}</span>
               </p>
               <p className="mt-1 text-gray-400">Share this securely — it won&apos;t be shown again.</p>
             </>
           ) : (
-            <p>Added <span className="font-medium">{addResult.email}</span> to this brand&apos;s team.</p>
+            <p>
+              Added <span className="font-medium">{addResult.email}</span> to this brand&apos;s team.
+            </p>
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
