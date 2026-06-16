@@ -8,15 +8,17 @@ const VALID_ROLES = ["platform_admin", "brand_admin", "customer"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
 const DEV_BRAND_NAME = "__Dev Test Brand__";
+const DEV_EMAIL = "dev@styledeck.test";
 
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
-  }
-
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Only the dev switcher account can use this endpoint
+  if (session.user.email !== DEV_EMAIL) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
     httpOnly: false,
     path: "/",
     sameSite: "lax",
-    secure: false, // dev only
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 30,
   });
 
@@ -58,7 +60,6 @@ export async function POST(request: NextRequest) {
 }
 
 async function ensureDevBrand(userId: string) {
-  // Upsert the dev test brand
   let [brand] = await db
     .select({ id: brands.id })
     .from(brands)
@@ -71,18 +72,16 @@ async function ensureDevBrand(userId: string) {
       .values({
         name: DEV_BRAND_NAME,
         category: "casual",
-        adminEmail: "dev@styledeck.test",
-        fulfillmentEmail: "dev@styledeck.test",
+        adminEmail: DEV_EMAIL,
+        fulfillmentEmail: DEV_EMAIL,
         status: "approved",
         accessPolicy: "open",
       })
       .returning({ id: brands.id });
   } else {
-    // Make sure it's approved so brand portal is accessible
     await db.update(brands).set({ status: "approved" }).where(eq(brands.id, brand.id));
   }
 
-  // Upsert brandAdmins record
   const [existing] = await db
     .select({ id: brandAdmins.id })
     .from(brandAdmins)
