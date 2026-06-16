@@ -12,20 +12,18 @@ export default async function AdminUsersPage() {
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
       createdAt: users.createdAt,
       customerType: customers.type,
       customerIndustry: customers.industry,
       customerStatus: customers.status,
     })
-    .from(users)
-    .leftJoin(customers, eq(customers.userId, users.id))
+    .from(customers)
+    .innerJoin(users, eq(users.id, customers.userId))
     .orderBy(desc(users.createdAt));
 
   const stats = {
     total: rows.length,
-    customers: rows.filter((u) => u.role === "customer").length,
-    brandAdmins: rows.filter((u) => u.role === "brand_admin").length,
+    active: rows.filter((u) => u.customerStatus === "active").length,
     suspended: rows.filter((u) => u.customerStatus === "suspended").length,
   };
 
@@ -33,7 +31,6 @@ export default async function AdminUsersPage() {
     id: u.id,
     name: u.name,
     email: u.email,
-    role: u.role,
     customerType: u.customerType,
     customerIndustry: u.customerIndustry,
     customerStatus: u.customerStatus,
@@ -42,7 +39,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-8">Users</h1>
+      <h1 className="text-2xl font-semibold mb-8">Clients</h1>
       <UsersTable rows={tableRows} stats={stats} />
     </div>
   );

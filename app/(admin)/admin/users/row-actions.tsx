@@ -22,7 +22,6 @@ export function RowActions({
   onToggleDetails: () => void;
 }) {
   const router = useRouter();
-  const isCustomer = row.role === "customer";
 
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -64,11 +63,12 @@ export function RowActions({
     setLoading(true);
     setError(null);
     try {
-      const body: Record<string, string> = { name: form.name, email: form.email };
-      if (isCustomer) {
-        body.customerType = form.customerType;
-        body.customerIndustry = form.customerIndustry;
-      }
+      const body: Record<string, string> = {
+        name: form.name,
+        email: form.email,
+        customerType: form.customerType,
+        customerIndustry: form.customerIndustry,
+      };
       const res = await fetch(`/api/admin/users/${row.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -132,38 +132,36 @@ export function RowActions({
                 className={inputClass}
               />
             </div>
-            {isCustomer && (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelClass}>Customer type</label>
-                  <select
-                    value={form.customerType}
-                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                    className={inputClass}
-                  >
-                    {CUSTOMER_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Industry</label>
-                  <select
-                    value={form.customerIndustry}
-                    onChange={(e) => setForm({ ...form, customerIndustry: e.target.value })}
-                    className={inputClass}
-                  >
-                    {INDUSTRIES.map((i) => (
-                      <option key={i} value={i}>
-                        {i}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={labelClass}>Client type</label>
+                <select
+                  value={form.customerType}
+                  onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+                  className={inputClass}
+                >
+                  {CUSTOMER_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
+              <div>
+                <label className={labelClass}>Industry</label>
+                <select
+                  value={form.customerIndustry}
+                  onChange={(e) => setForm({ ...form, customerIndustry: e.target.value })}
+                  className={inputClass}
+                >
+                  {INDUSTRIES.map((i) => (
+                    <option key={i} value={i}>
+                      {i}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-2 justify-end">
               <button
@@ -188,7 +186,7 @@ export function RowActions({
                 disabled={loading}
                 className="bg-black dark:bg-white dark:text-black text-white text-xs px-3 py-1.5 rounded-md hover:bg-gray-800 disabled:opacity-50"
               >
-                {loading ? "Saving…" : "Save"}
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </form>
@@ -204,8 +202,8 @@ export function RowActions({
         panel={
           <div className="space-y-2">
             <p className="text-xs text-red-600">
-              Permanently delete <span className="font-medium">{row.name}</span>&apos;s account? This
-              can&apos;t be undone.
+              Permanently delete <span className="font-medium">{row.name}</span>'s account? This
+              cannot be undone.
             </p>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-2 justify-end">
@@ -224,7 +222,7 @@ export function RowActions({
                 onClick={submitDelete}
                 className="bg-red-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-700 disabled:opacity-50"
               >
-                {loading ? "Deleting…" : "Delete permanently"}
+                {loading ? "Deleting..." : "Delete permanently"}
               </button>
             </div>
           </div>
@@ -238,7 +236,7 @@ export function RowActions({
     { key: "edit", label: "Edit", onClick: () => setEditing(true) },
   ];
 
-  if (isCustomer && row.customerStatus) {
+  if (row.customerStatus) {
     actions.push({
       key: "suspend",
       label: row.customerStatus === "active" ? "Suspend" : "Activate",

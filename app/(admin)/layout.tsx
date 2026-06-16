@@ -4,7 +4,7 @@ import { getPlatformLogoUrl } from "@/lib/db/queries/platform-settings";
 const links = [
   { href: "/admin", label: "Dashboard", exact: true },
   { href: "/admin/brands", label: "Brands" },
-  { href: "/admin/users", label: "Users" },
+  { href: "/admin/users", label: "Clients" },
   { href: "/admin/audit", label: "Audit Log" },
   { href: "/admin/account", label: "Account" },
 ];
