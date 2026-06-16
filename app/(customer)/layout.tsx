@@ -5,8 +5,7 @@ const links = [
   { href: "/app/discover", label: "Discover", exact: true },
   { href: "/app/saved", label: "Saved" },
   { href: "/app/orders", label: "Orders" },
-  { href: "/app/profile", label: "Profile" },
-  { href: "/app/account", label: "Account" },
+  { href: "/app/account", label: "Profile" },
 ];
 
 export default async function CustomerLayout({

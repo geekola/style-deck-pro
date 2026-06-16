@@ -74,7 +74,7 @@ function ProductCard({
         <span className="text-xs uppercase tracking-widest text-white/70 bg-black dark:bg-white dark:text-black backdrop-blur-sm rounded-full px-3 py-1">
           {product.category}
         </span>
-        <span className="text-xs bg-white dark:bg-gray-950/90 text-gray-700 dark:text-gray-300 dark:text-gray-600 rounded-full px-3 py-1 font-medium">
+        <span className={`text-xs rounded-full px-3 py-1 font-medium text-white ${product.itemType === "gift" ? "bg-emerald-600" : "bg-black/70 backdrop-blur-sm"}`}>
           {product.itemType === "gift" ? "Gift" : product.price != null ? `$${(product.price / 100).toFixed(0)}` : "—"}
         </span>
       </div>
@@ -487,6 +487,6 @@ export function SwipeExperience({
           />
         )}
       </div>
-    </div>
+       </div>
   );
 }

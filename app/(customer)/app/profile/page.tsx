@@ -118,7 +118,7 @@ export default function ProfilePage() {
       {/* Sticky header */}
       <div className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-black/6 dark:border-white/10 px-5 py-3.5 flex items-center justify-between">
         <div>
-          <Link href="/app/discover" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">&larr; Discover</Link>
+          <Link href="/app/account" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white">&larr; Profile</Link>
           <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{filled}/{total} fields filled</div>
         </div>
         <div className="flex items-center gap-2">

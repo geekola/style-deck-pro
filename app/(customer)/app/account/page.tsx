@@ -8,7 +8,6 @@ import {
   changeEmail,
   changePassword,
 } from "@/lib/auth-client";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { COUNTRIES } from "@/components/country-select";
 
 const CUSTOMER_TYPES: { value: string; label: string }[] = [
@@ -81,8 +80,6 @@ export default function AccountPage() {
   // Profile (name)
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [nameSaving, setNameSaving] = useState(false);
-  const [nameSaved, setNameSaved] = useState(false);
 
   // Email
   const [email, setEmail] = useState("");
@@ -160,16 +157,6 @@ export default function AccountPage() {
       .catch(() => setContactsLoaded(true));
   }, []);
 
-  async function handleSaveName() {
-    setNameSaving(true);
-    setNameSaved(false);
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    await updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName } as Parameters<typeof updateUser>[0]);
-    setNameSaving(false);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 2000);
-  }
-
   async function handleSaveEmail() {
     if (!email || email === session?.user.email) return;
     setEmailSaving(true);
@@ -223,11 +210,15 @@ export default function AccountPage() {
   async function handleSaveProfile() {
     setProfileSaving(true);
     setProfileSaved(false);
-    await fetch("/api/account/customer-profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: customerType, industry }),
-    });
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    await Promise.all([
+      updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName } as Parameters<typeof updateUser>[0]),
+      fetch("/api/account/customer-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: customerType, industry }),
+      }),
+    ]);
     setProfileSaving(false);
     setProfileSaved(true);
     setTimeout(() => setProfileSaved(false), 2000);
@@ -341,21 +332,32 @@ export default function AccountPage() {
         </h1>
       </div>
 
+      {/* Eligibility banner */}
+      {contactsLoaded && contacts.length === 0 && (
+        <div className="mx-5 mt-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Profile incomplete</p>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+            Add at least one additional contact below to activate your account eligibility.
+          </p>
+        </div>
+      )}
+
       <div className="px-5 py-6 space-y-8">
-        {/* Appearance */}
+        {/* Measurements */}
         <section>
           <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Appearance
+            Measurements
           </h2>
-          <div className="flex items-center justify-between">
+          <Link
+            href="/app/profile"
+            className="flex items-center justify-between w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+          >
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Theme</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Switch between light and dark mode.
-              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Edit measurements</p>
+              <p className="text-xs text-gray-400 mt-0.5">Body measurements &amp; fit preferences</p>
             </div>
-            <ThemeToggle />
-          </div>
+            <span className="text-gray-400 text-sm">→</span>
+          </Link>
         </section>
 
         {/* Profile */}
@@ -364,83 +366,33 @@ export default function AccountPage() {
             Profile
           </h2>
           <div className="space-y-3">
-            <div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    First name
-                  </label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Last name
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleSaveName}
-                disabled={nameSaving || !firstName.trim()}
-                className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
-                  nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                }`}
-              >
-                {nameSaved ? "Saved ✓" : nameSaving ? "Saving..." : "Save name"}
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Email
-              </label>
-              <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  First name
+                </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                 />
-                <button
-                  onClick={handleSaveEmail}
-                  disabled={emailSaving || !email.trim() || email === session?.user.email}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
-                >
-                  {emailSaving ? "Sending..." : "Update"}
-                </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Changing your email requires verifying the new address before it takes effect.
-              </p>
-              {emailMessage && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1.5">{emailMessage}</p>
-              )}
-              {emailError && (
-                <p className="text-xs text-red-500 mt-1.5">{emailError}</p>
-              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                />
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* Customer type / industry */}
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Customer profile
-          </h2>
-          <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Customer type
+                Client type
               </label>
               <select
                 value={customerType}
@@ -472,14 +424,45 @@ export default function AccountPage() {
             </div>
             <button
               onClick={handleSaveProfile}
-              disabled={profileSaving}
+              disabled={profileSaving || !firstName.trim()}
               className={`w-full py-3 rounded-xl text-sm font-medium text-white transition-colors ${
                 profileSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-              }`}
+              } disabled:opacity-50`}
             >
               {profileSaved ? "Saved ✓" : profileSaving ? "Saving..." : "Save profile"}
             </button>
           </div>
+        </section>
+
+        {/* Email */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Email
+          </h2>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+            />
+            <button
+              onClick={handleSaveEmail}
+              disabled={emailSaving || !email.trim() || email === session?.user.email}
+              className="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              {emailSaving ? "Sending..." : "Update"}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            Changing your email requires verifying the new address before it takes effect.
+          </p>
+          {emailMessage && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1.5">{emailMessage}</p>
+          )}
+          {emailError && (
+            <p className="text-xs text-red-500 mt-1.5">{emailError}</p>
+          )}
         </section>
 
         {/* Ship-to address */}

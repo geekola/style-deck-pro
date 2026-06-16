@@ -25,6 +25,7 @@ export default function SavedPage() {
   const [loading, setLoading] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/customer/saved");
@@ -66,8 +67,15 @@ export default function SavedPage() {
   const selectedBrandId = selectedItems[0]?.brandId ?? null;
   const selectedTotal = selectedItems.reduce((sum, i) => sum + (i.price ?? 0), 0);
 
+  // Unique brands derived from saved items
+  const brands = Array.from(
+    new Map(items.map((i) => [i.brandId, i.brandName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const filteredItems = brandFilter ? items.filter((i) => i.brandId === brandFilter) : items;
+
   const grouped = CATEGORY_ORDER.reduce<Record<string, SavedProduct[]>>((acc, cat) => {
-    acc[cat] = items.filter((i) => i.category === cat);
+    acc[cat] = filteredItems.filter((i) => i.category === cat);
     return acc;
   }, {});
 
@@ -104,6 +112,35 @@ export default function SavedPage() {
               </div>
             ))}
           </div>
+
+          {/* Brand filter */}
+          {brands.length > 1 && (
+            <div className="flex gap-2 px-5 pb-3 overflow-x-auto scrollbar-hide">
+              <button
+                onClick={() => setBrandFilter(null)}
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  brandFilter === null
+                    ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
+                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400"
+                }`}
+              >
+                All brands
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setBrandFilter(brandFilter === b.id ? null : b.id)}
+                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    brandFilter === b.id
+                      ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
+                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400"
+                  }`}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {CATEGORY_ORDER.map((cat) => {
             const catItems = grouped[cat];
@@ -144,7 +181,7 @@ export default function SavedPage() {
                               className="absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 border-white object-cover bg-white shadow-md"
                             />
                           )}
-                          <span className="absolute top-2 right-2 text-xs bg-white dark:bg-gray-950/90 rounded-full px-2 py-0.5 font-medium">
+                          <span className={`absolute top-2 right-2 text-xs rounded-full px-2 py-0.5 font-medium text-white ${item.itemType === "gift" ? "bg-emerald-600" : "bg-black/70 backdrop-blur-sm"}`}>
                             {item.itemType === "gift" ? "Gift" : item.price != null ? `$${(item.price / 100).toFixed(0)}` : "—"}
                           </span>
                           {selectMode && eligible && (
