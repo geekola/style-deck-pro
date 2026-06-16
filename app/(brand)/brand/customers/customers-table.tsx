@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { Tabs } from "@/components/admin/tabs";
 import { Pagination } from "@/components/admin/pagination";
@@ -118,7 +119,7 @@ export function CustomersTable({
   if (rows.length === 0) {
     return (
       <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-        No customers yet. Send an invite to get started.
+        No clients yet. Send an invite to get started.
       </div>
     );
   }
@@ -144,7 +145,7 @@ export function CustomersTable({
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <SearchInput
-          placeholder="Search by name or email…"
+          placeholder="Search by name or email..."
           value={search}
           onChange={(v) => {
             setSearch(v);
@@ -188,7 +189,7 @@ export function CustomersTable({
           {pageRows.length === 0 && (
             <tr>
               <td colSpan={5} className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm">
-                No customers found.
+                No clients found.
               </td>
             </tr>
           )}
@@ -207,7 +208,10 @@ function Row({
   row: CustomerRow;
   onToggleAccess: (customerId: string, grant: boolean) => void;
 }) {
+  const router = useRouter();
+
   const actions: RowAction[] = [
+    { key: "view", label: "View profile", href: `/brand/customers/${row.id}` },
     {
       key: "toggle-access",
       label: row.hasAccess ? "Revoke access" : "Grant access",
@@ -217,7 +221,10 @@ function Row({
   ];
 
   return (
-    <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
+    <tr
+      className="hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+      onClick={() => router.push(`/brand/customers/${row.id}`)}
+    >
       <td className="py-3">
         <div className="font-medium">{row.name}</div>
         <div className="text-xs text-gray-400 dark:text-gray-500">{row.email}</div>
@@ -235,7 +242,7 @@ function Row({
           {row.hasAccess ? "Granted" : "No access"}
         </span>
       </td>
-      <td className="py-3 text-right">
+      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <ActionsMenu actions={actions} />
       </td>
     </tr>

@@ -52,7 +52,7 @@ export default function BrandCustomersPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex items-start justify-between mb-8">
-        <h1 className="text-2xl font-semibold">Customers</h1>
+        <h1 className="text-2xl font-semibold">Clients</h1>
 
         <form onSubmit={sendInvite} className="flex gap-2">
           <input
