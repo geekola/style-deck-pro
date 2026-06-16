@@ -134,7 +134,7 @@ export function OrdersTable({
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <SearchInput
-          placeholder="Search by product or customer…"
+          placeholder="Search by product or customer..."
           value={search}
           onChange={(v) => {
             setSearch(v);

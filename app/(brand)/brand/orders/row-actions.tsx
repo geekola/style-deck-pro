@@ -48,7 +48,7 @@ export function RowActions({ row }: { row: OrderRow }) {
               disabled={loading}
               className="bg-black dark:bg-white dark:text-black text-white text-xs px-3 py-1.5 rounded-md hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading ? "…" : "Confirm"}
+              {loading ? "..." : "Confirm"}
             </button>
             <button
               onClick={() => setMode("none")}

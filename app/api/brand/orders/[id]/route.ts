@@ -94,7 +94,6 @@ export async function PUT(
     ip: request.headers.get("x-forwarded-for") ?? undefined,
   });
 
-  // Send shipped notification to customer
   const [detail] = await db
     .select({
       customerEmail: users.email,
