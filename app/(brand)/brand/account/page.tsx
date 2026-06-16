@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth-client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TeamSection } from "./team-section";
+import { COUNTRIES } from "@/components/country-select";
 
 export default function BrandAccountPage() {
   const { data: session, isPending } = useSession();
@@ -40,6 +41,15 @@ export default function BrandAccountPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
 
+  // Brand addresses
+  type BrandAddress = { line1: string; line2: string; city: string; state: string; postalCode: string; country: string };
+  const emptyAddr: BrandAddress = { line1: "", line2: "", city: "", state: "", postalCode: "", country: "" };
+  const [brandAddress, setBrandAddress] = useState<BrandAddress>(emptyAddr);
+  const [returnAddress, setReturnAddress] = useState<BrandAddress>(emptyAddr);
+  const [addressesLoaded, setAddressesLoaded] = useState(false);
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressSaved, setAddressSaved] = useState(false);
+
   useEffect(() => {
     if (session?.user) {
       setFirstName(session.user.firstName ?? "");
@@ -55,6 +65,17 @@ export default function BrandAccountPage() {
         if (data) setLogoUrl(data.logoUrl ?? null);
       })
       .finally(() => setLogoLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/brand/addresses")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.address) setBrandAddress({ line1: data.address.line1 ?? "", line2: data.address.line2 ?? "", city: data.address.city ?? "", state: data.address.state ?? "", postalCode: data.address.postalCode ?? "", country: data.address.country ?? "" });
+        if (data?.returnAddress) setReturnAddress({ line1: data.returnAddress.line1 ?? "", line2: data.returnAddress.line2 ?? "", city: data.returnAddress.city ?? "", state: data.returnAddress.state ?? "", postalCode: data.returnAddress.postalCode ?? "", country: data.returnAddress.country ?? "" });
+        setAddressesLoaded(true);
+      })
+      .catch(() => setAddressesLoaded(true));
   }, []);
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -155,7 +176,19 @@ export default function BrandAccountPage() {
     }
   }
 
-  if (isPending) {
+  async function handleSaveAddresses(field: "address" | "returnAddress", value: BrandAddress) {
+    setAddressSaving(true);
+    setAddressSaved(false);
+    const body = field === "address"
+      ? { address: value.line1 ? value : null }
+      : { returnAddress: value.line1 ? value : null };
+    await fetch("/api/brand/addresses", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    setAddressSaving(false);
+    setAddressSaved(true);
+    setTimeout(() => setAddressSaved(false), 2000);
+  }
+
+  if (isPending || !addressesLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-400 text-sm">
         Loading...
@@ -312,6 +345,93 @@ export default function BrandAccountPage() {
 
         {/* Team */}
         <TeamSection />
+
+        {/* Business address */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Business address
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 1</label>
+              <input type="text" value={brandAddress.line1} onChange={(e) => setBrandAddress({ ...brandAddress, line1: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 2 <span className="text-gray-300 dark:text-gray-600">optional</span></label>
+              <input type="text" value={brandAddress.line2} onChange={(e) => setBrandAddress({ ...brandAddress, line2: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">City</label>
+                <input type="text" value={brandAddress.city} onChange={(e) => setBrandAddress({ ...brandAddress, city: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">State / Province</label>
+                <input type="text" value={brandAddress.state} onChange={(e) => setBrandAddress({ ...brandAddress, state: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Postal code</label>
+                <input type="text" value={brandAddress.postalCode} onChange={(e) => setBrandAddress({ ...brandAddress, postalCode: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Country</label>
+                <select value={brandAddress.country} onChange={(e) => setBrandAddress({ ...brandAddress, country: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white">
+                  <option value="">Select country</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={() => handleSaveAddresses("address", brandAddress)} disabled={addressSaving || !brandAddress.line1} className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${addressSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"} disabled:opacity-50`}>
+              {addressSaved ? "Saved ✓" : addressSaving ? "Saving..." : "Save business address"}
+            </button>
+          </div>
+        </section>
+
+        {/* Return address */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Return address
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">Printed on outgoing shipments. If blank, business address is used.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 1</label>
+              <input type="text" value={returnAddress.line1} onChange={(e) => setReturnAddress({ ...returnAddress, line1: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 2 <span className="text-gray-300 dark:text-gray-600">optional</span></label>
+              <input type="text" value={returnAddress.line2} onChange={(e) => setReturnAddress({ ...returnAddress, line2: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">City</label>
+                <input type="text" value={returnAddress.city} onChange={(e) => setReturnAddress({ ...returnAddress, city: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">State / Province</label>
+                <input type="text" value={returnAddress.state} onChange={(e) => setReturnAddress({ ...returnAddress, state: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Postal code</label>
+                <input type="text" value={returnAddress.postalCode} onChange={(e) => setReturnAddress({ ...returnAddress, postalCode: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Country</label>
+                <select value={returnAddress.country} onChange={(e) => setReturnAddress({ ...returnAddress, country: e.target.value })} className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white">
+                  <option value="">Select country</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={() => handleSaveAddresses("returnAddress", returnAddress)} disabled={addressSaving} className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${addressSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"} disabled:opacity-50`}>
+              {addressSaved ? "Saved ✓" : addressSaving ? "Saving..." : "Save return address"}
+            </button>
+          </div>
+        </section>
 
         {/* Password */}
         <section>

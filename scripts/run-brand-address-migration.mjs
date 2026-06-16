@@ -1,9 +1,9 @@
 /**
- * Migration: add ship_to_address (JSONB) to users table.
+ * Migration: add address + return_address (JSONB) to brands table.
  * Safe to re-run — checks information_schema before altering.
  *
  * Usage:
- *   node scripts/run-ship-address-migration.mjs
+ *   node scripts/run-brand-address-migration.mjs
  */
 
 import postgres from "postgres";
@@ -36,17 +36,26 @@ loadEnv(envPath);
 const sql = postgres(process.env.DATABASE_URL);
 
 try {
-  const rows = await sql`
+  const existing = await sql`
     SELECT column_name
     FROM information_schema.columns
-    WHERE table_name = 'users' AND column_name = 'ship_to_address'
+    WHERE table_name = 'brands'
+      AND column_name IN ('address', 'return_address')
   `;
+  const done = new Set(existing.map((r) => r.column_name));
 
-  if (rows.length > 0) {
-    console.log("✓ ship_to_address already exists on users — nothing to do.");
+  if (!done.has("address")) {
+    await sql`ALTER TABLE brands ADD COLUMN address JSONB`;
+    console.log("✓ Added address column to brands.");
   } else {
-    await sql`ALTER TABLE users ADD COLUMN ship_to_address JSONB`;
-    console.log("✓ Added ship_to_address column to users.");
+    console.log("✓ address already exists — skipping.");
+  }
+
+  if (!done.has("return_address")) {
+    await sql`ALTER TABLE brands ADD COLUMN return_address JSONB`;
+    console.log("✓ Added return_address column to brands.");
+  } else {
+    console.log("✓ return_address already exists — skipping.");
   }
 
   console.log("Migration complete.");

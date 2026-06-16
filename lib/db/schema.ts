@@ -186,6 +186,22 @@ export const brands = pgTable("brands", {
   statusReason: text("status_reason"),
   accessPolicy: accessPolicyEnum("access_policy").notNull().default("open"),
   logoUrl: text("logo_url"),
+  address: jsonb("address").$type<{
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }>(),
+  returnAddress: jsonb("return_address").$type<{
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -498,8 +514,7 @@ export const brandsRelations = relations(brands, ({ many }) => ({
   brandAdmins: many(brandAdmins),
   products: many(products),
   brandAccess: many(brandAccess),
-  giftingAllowances: many(giftingAllowances),
-  orders: many(orders),
+  giftingAllowances: many(giftingAllowances),  orders: many(orders),
   invites: many(invites),
 }));
 
@@ -510,3 +525,4 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   savedProducts: many(savedProducts),
   orders: many(orders),
 }));
+
