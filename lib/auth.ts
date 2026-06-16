@@ -65,6 +65,16 @@ export const auth = betterAuth({
         defaultValue: "customer",
         input: false, // not settable by the client
       },
+      firstName: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      lastName: {
+        type: "string",
+        required: false,
+        input: true,
+      },
     },
     // Changing your email requires verifying the new address before it
     // takes effect. The existing emailVerification.sendVerificationEmail

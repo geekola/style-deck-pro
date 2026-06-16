@@ -6,7 +6,8 @@ import { customers, customerContacts } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 
 const contactSchema = z.object({
-  name: z.string().trim().min(1).max(200),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().max(100).default(""),
   role: z.string().trim().max(100).optional().or(z.literal("")),
   email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
@@ -20,7 +21,9 @@ const contactSchema = z.object({
 
 function toRow(data: z.infer<typeof contactSchema>) {
   return {
-    name: data.name,
+    firstName: data.firstName,
+    lastName: data.lastName ?? "",
+    name: [data.firstName, data.lastName].filter(Boolean).join(" ") || null,
     role: data.role || null,
     email: data.email || null,
     phone: data.phone || null,

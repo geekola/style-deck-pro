@@ -96,6 +96,8 @@ export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
@@ -250,7 +252,9 @@ export const customerContacts = pgTable(
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    name: text("name"), // kept for backward compat; derived from firstName + lastName
     role: text("role"), // free text, e.g. "Assistant", "Agent", "Manager"
     email: text("email"),
     phone: text("phone"),

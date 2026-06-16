@@ -31,7 +31,8 @@ const INDUSTRIES: { value: string; label: string }[] = [
 
 type Contact = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string | null;
   email: string | null;
   phone: string | null;
@@ -44,7 +45,8 @@ type Contact = {
 };
 
 type ContactForm = {
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   email: string;
   phone: string;
@@ -57,7 +59,8 @@ type ContactForm = {
 };
 
 const emptyContactForm: ContactForm = {
-  name: "",
+  firstName: "",
+  lastName: "",
   role: "",
   email: "",
   phone: "",
@@ -76,7 +79,8 @@ export default function AccountPage() {
   const { data: session, isPending } = useSession();
 
   // Profile (name)
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
 
@@ -111,7 +115,8 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (session?.user) {
-      setName(session.user.name ?? "");
+      setFirstName(session.user.firstName ?? "");
+      setLastName(session.user.lastName ?? "");
       setEmail(session.user.email ?? "");
     }
   }, [session?.user]);
@@ -140,7 +145,8 @@ export default function AccountPage() {
   async function handleSaveName() {
     setNameSaving(true);
     setNameSaved(false);
-    await updateUser({ name });
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    await updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName } as Parameters<typeof updateUser>[0]);
     setNameSaving(false);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
@@ -218,7 +224,8 @@ export default function AccountPage() {
   function openEditContact(c: Contact) {
     setEditingContactId(c.id);
     setContactForm({
-      name: c.name,
+      firstName: c.firstName ?? "",
+      lastName: c.lastName ?? "",
       role: c.role ?? "",
       email: c.email ?? "",
       phone: c.phone ?? "",
@@ -240,8 +247,8 @@ export default function AccountPage() {
 
   async function handleSaveContact() {
     if (!contactForm) return;
-    if (!contactForm.name.trim()) {
-      setContactError("Name is required.");
+    if (!contactForm.firstName.trim()) {
+      setContactError("First name is required.");
       return;
     }
 
@@ -327,26 +334,39 @@ export default function AccountPage() {
           </h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                />
-                <button
-                  onClick={handleSaveName}
-                  disabled={nameSaving || !name.trim()}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
-                    nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                  }`}
-                >
-                  {nameSaved ? "Saved &#10003;" : nameSaving ? "Saving..." : "Save"}
-                </button>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    First name
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Last name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  />
+                </div>
               </div>
+              <button
+                onClick={handleSaveName}
+                disabled={nameSaving || !firstName.trim()}
+                className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
+                  nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                }`}
+              >
+                {nameSaved ? "Saved ✓" : nameSaving ? "Saving..." : "Save name"}
+              </button>
             </div>
 
             <div>
@@ -426,7 +446,7 @@ export default function AccountPage() {
                 profileSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
               }`}
             >
-              {profileSaved ? "Saved &#10003;" : profileSaving ? "Saving..." : "Save profile"}
+              {profileSaved ? "Saved ✓" : profileSaving ? "Saving..." : "Save profile"}
             </button>
           </div>
         </section>
@@ -452,7 +472,7 @@ export default function AccountPage() {
                 <div key={c.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{[c.firstName, c.lastName].filter(Boolean).join(" ")}</p>
                       {c.role && <p className="text-xs text-gray-400 mt-0.5">{c.role}</p>}
                       {(c.email || c.phone) && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -488,14 +508,25 @@ export default function AccountPage() {
               {contactForm ? (
                 <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2">
+                    <div>
                       <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                        Name
+                        First name
                       </label>
                       <input
                         type="text"
-                        value={contactForm.name}
-                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                        value={contactForm.firstName}
+                        onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Last name
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.lastName}
+                        onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
                         className={inputClass}
                       />
                     </div>

@@ -14,6 +14,8 @@ import { users, accounts } from "@/lib/db/schema";
 export async function createCredentialUser(params: {
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   role: "platform_admin" | "brand_admin" | "customer";
   password: string;
   emailVerified?: boolean;
@@ -24,6 +26,8 @@ export async function createCredentialUser(params: {
     id: userId,
     email: params.email,
     name: params.name,
+    firstName: params.firstName ?? null,
+    lastName: params.lastName ?? null,
     role: params.role,
     emailVerified: params.emailVerified ?? false,
   });

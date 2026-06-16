@@ -15,7 +15,8 @@ export default function BrandAccountPage() {
   const { data: session, isPending } = useSession();
 
   // Profile (name)
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
 
@@ -41,7 +42,8 @@ export default function BrandAccountPage() {
 
   useEffect(() => {
     if (session?.user) {
-      setName(session.user.name ?? "");
+      setFirstName(session.user.firstName ?? "");
+      setLastName(session.user.lastName ?? "");
       setEmail(session.user.email ?? "");
     }
   }, [session?.user]);
@@ -96,7 +98,8 @@ export default function BrandAccountPage() {
   async function handleSaveName() {
     setNameSaving(true);
     setNameSaved(false);
-    await updateUser({ name });
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    await updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName } as Parameters<typeof updateUser>[0]);
     setNameSaving(false);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
@@ -240,26 +243,39 @@ export default function BrandAccountPage() {
           </h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                />
-                <button
-                  onClick={handleSaveName}
-                  disabled={nameSaving || !name.trim()}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
-                    nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                  }`}
-                >
-                  {nameSaved ? "Saved &#10003;" : nameSaving ? "Saving..." : "Save"}
-                </button>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    First name
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Last name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  />
+                </div>
               </div>
+              <button
+                onClick={handleSaveName}
+                disabled={nameSaving || !firstName.trim()}
+                className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
+                  nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                }`}
+              >
+                {nameSaved ? "Saved ✓" : nameSaving ? "Saving..." : "Save name"}
+              </button>
             </div>
 
             <div>

@@ -16,7 +16,8 @@ export default function InviteRegistrationPage({
   const { token } = use(params);
 
   const [invite, setInvite] = useState<InviteInfo | null>(null);
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [type, setType] = useState<typeof CUSTOMER_TYPES[number]>("performer");
   const [industry, setIndustry] = useState<typeof INDUSTRIES[number]>("other");
@@ -42,13 +43,17 @@ export default function InviteRegistrationPage({
     // email verification (see step 2 below).
     const finalizeUrl = `/api/auth/finalize?inviteToken=${encodeURIComponent(token)}&type=${type}&industry=${industry}`;
 
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
     // 1. Create Better Auth account
     const result = await signUp.email({
       email: invite.email,
       password,
-      name,
+      name: fullName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       callbackURL: finalizeUrl,
-    });
+    } as Parameters<typeof signUp.email>[0]);
 
     if (result.error) {
       setError(result.error.message ?? "Registration failed. Please try again.");
@@ -145,16 +150,29 @@ export default function InviteRegistrationPage({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Full name</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-              placeholder="Your name"
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First name</label>
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                placeholder="First"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last name</label>
+              <input
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                placeholder="Last"
+              />
+            </div>
           </div>
 
           <div>
