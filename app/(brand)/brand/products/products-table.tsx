@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { RowActions } from "./row-actions";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { Tabs } from "@/components/admin/tabs";
@@ -19,6 +21,7 @@ export type ProductRow = {
   returnPolicy: string | null;
   active: boolean;
   createdAt: string;
+  thumbnailUrl: string | null;
 };
 
 type Tab = "all" | "active" | "inactive";
@@ -131,7 +134,7 @@ export function ProductsTable({
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <SearchInput
-          placeholder="Search by name…"
+          placeholder="Search by name..."
           value={search}
           onChange={(v) => {
             setSearch(v);
@@ -184,67 +187,70 @@ export function ProductsTable({
         </tbody>
       </table>
 
-      <Pagination page={currentPage} pageCount={pageCount} totalCount={filtered.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+      <Pagination
+        page={currentPage}
+        pageCount={pageCount}
+        totalCount={filtered.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
 
 function Row({ row }: { row: ProductRow }) {
-  const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
 
   return (
-    <>
-      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-        <td className="py-3 font-medium">{row.name}</td>
-        <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.category}</td>
-        <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.itemType}</td>
-        <td className="py-3 text-gray-600 dark:text-gray-400">
-          {row.price != null ? `$${(row.price / 100).toFixed(2)}` : "—"}
-        </td>
-        <td className="py-3">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-              row.active
-                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-            }`}
-          >
-            {row.active ? "Active" : "Inactive"}
-          </span>
-        </td>
-        <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
-          {new Date(row.createdAt).toLocaleDateString()}
-        </td>
-        <td className="py-3 text-right">
-          <RowActions row={row} expanded={expanded} onToggleDetails={() => setExpanded((e) => !e)} />
-        </td>
-      </tr>
-
-      {expanded && (
-        <tr className="bg-gray-50 dark:bg-gray-900/60">
-          <td colSpan={7} className="px-3 py-3 text-xs text-gray-600 dark:text-gray-400">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="text-gray-400 dark:text-gray-500">Cost price:</span>{" "}
-                {row.costPrice != null ? `$${(row.costPrice / 100).toFixed(2)}` : "—"}
+    <tr
+      className="hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+      onClick={() => router.push(`/brand/products/${row.id}`)}
+    >
+      <td className="py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+            {row.thumbnailUrl ? (
+              <Image
+                src={row.thumbnailUrl}
+                alt={row.name}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600 text-xs">
+                --
               </div>
-              <div className="truncate">
-                <span className="text-gray-400 dark:text-gray-500">Product ID:</span> {row.id}
-              </div>
-              {row.description && (
-                <div className="col-span-2">
-                  <span className="text-gray-400 dark:text-gray-500">Description:</span> {row.description}
-                </div>
-              )}
-              {row.returnPolicy && (
-                <div className="col-span-2">
-                  <span className="text-gray-400 dark:text-gray-500">Return policy:</span> {row.returnPolicy}
-                </div>
-              )}
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+            )}
+          </div>
+          <span className="font-medium">{row.name}</span>
+        </div>
+      </td>
+      <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.category}</td>
+      <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.itemType}</td>
+      <td className="py-3 text-gray-600 dark:text-gray-400">
+        {row.price != null ? `$${(row.price / 100).toFixed(2)}` : "--"}
+      </td>
+      <td className="py-3">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+            row.active
+              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+          }`}
+        >
+          {row.active ? "Active" : "Inactive"}
+        </span>
+      </td>
+      <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
+        {new Date(row.createdAt).toLocaleDateString()}
+      </td>
+      <td
+        className="py-3 text-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RowActions row={row} />
+      </td>
+    </tr>
   );
 }

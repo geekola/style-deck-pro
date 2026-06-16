@@ -18,6 +18,7 @@ export default async function BrandProductsPage() {
     returnPolicy: p.returnPolicy,
     active: p.active,
     createdAt: p.createdAt.toISOString(),
+    thumbnailUrl: p.thumbnailUrl,
   }));
 
   const stats = {

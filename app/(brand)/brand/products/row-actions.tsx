@@ -7,15 +7,7 @@ import { ActionsMenu, type RowAction } from "@/components/admin/actions-menu";
 
 type Mode = "none" | "delete";
 
-export function RowActions({
-  row,
-  expanded,
-  onToggleDetails,
-}: {
-  row: ProductRow;
-  expanded: boolean;
-  onToggleDetails: () => void;
-}) {
+export function RowActions({ row }: { row: ProductRow }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("none");
   const [loading, setLoading] = useState(false);
@@ -72,7 +64,7 @@ export function RowActions({
         panel={
           <div className="space-y-2">
             <p className="text-xs text-red-600">
-              Permanently delete <span className="font-medium">{row.name}</span>? This can&apos;t be undone.
+              Permanently delete <span className="font-medium">{row.name}</span>? This cannot be undone.
             </p>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-2 justify-end">
@@ -91,7 +83,7 @@ export function RowActions({
                 onClick={submitDelete}
                 className="bg-red-600 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-700 disabled:opacity-50"
               >
-                {loading ? "Deleting…" : "Delete permanently"}
+                {loading ? "Deleting..." : "Delete permanently"}
               </button>
             </div>
           </div>
@@ -101,7 +93,6 @@ export function RowActions({
   }
 
   const actions: RowAction[] = [
-    { key: "details", label: expanded ? "Hide details" : "View details", onClick: onToggleDetails },
     { key: "edit", label: "Edit", href: `/brand/products/${row.id}` },
     {
       key: "toggle-active",

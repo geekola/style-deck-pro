@@ -1,15 +1,15 @@
 /**
  * Shared brand-scoped query helpers.
  *
- * All functions enforce `WHERE brand_id = brandId` — never skip this.
+ * All functions enforce `WHERE brand_id = brandId` -- never skip this.
  * Never pass brandId from client input; always derive it from the session.
  */
 
 import { db } from "@/lib/db";
-import { brands, brandAdmins, products, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { brands, brandAdmins, products, productImages, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
+import { eq, and, desc, inArray } from "drizzle-orm";
 
-// ─── Brand ────────────────────────────────────────────────────────────────────
+// Brand
 
 export async function getBrandById(brandId: string) {
   const [brand] = await db
@@ -28,14 +28,26 @@ export async function assertBrandApproved(brandId: string) {
   return brand;
 }
 
-// ─── Products ─────────────────────────────────────────────────────────────────
+// Products
 
 export async function getBrandProducts(brandId: string) {
-  return db
+  const prods = await db
     .select()
     .from(products)
     .where(eq(products.brandId, brandId))
-    .orderBy(products.createdAt);
+    .orderBy(desc(products.createdAt));
+
+  if (prods.length === 0) return [];
+
+  const productIds = prods.map((p) => p.id);
+  const heroImages = await db
+    .select({ productId: productImages.productId, url: productImages.url })
+    .from(productImages)
+    .where(and(inArray(productImages.productId, productIds), eq(productImages.hero, true)));
+
+  const heroMap = new Map(heroImages.map((i) => [i.productId, i.url]));
+
+  return prods.map((p) => ({ ...p, thumbnailUrl: heroMap.get(p.id) ?? null }));
 }
 
 export async function getBrandProduct(brandId: string, productId: string) {
@@ -47,7 +59,7 @@ export async function getBrandProduct(brandId: string, productId: string) {
   return product ?? null;
 }
 
-// ─── Access ───────────────────────────────────────────────────────────────────
+// Access
 
 export async function getBrandAccessList(brandId: string) {
   return db
@@ -67,7 +79,7 @@ export async function customerHasAccess(brandId: string, customerId: string) {
   return !!row;
 }
 
-// ─── Gifting ──────────────────────────────────────────────────────────────────
+// Gifting
 
 export async function getGiftingAllowance(brandId: string, customerId: string) {
   const [row] = await db
@@ -90,7 +102,7 @@ export async function getBrandGiftingAllowances(brandId: string) {
     .where(eq(giftingAllowances.brandId, brandId));
 }
 
-// ─── Orders ───────────────────────────────────────────────────────────────────
+// Orders
 
 export async function getBrandOrders(brandId: string) {
   return db
@@ -109,7 +121,7 @@ export async function getBrandOrder(brandId: string, orderId: string) {
   return order ?? null;
 }
 
-// Oldest unshipped orders first — used for the "Needs shipping" dashboard list.
+// Oldest unshipped orders first -- used for the "Needs shipping" dashboard list.
 export async function getBrandPendingOrders(brandId: string, limit = 5) {
   return db
     .select({
@@ -130,9 +142,9 @@ export async function getBrandPendingOrders(brandId: string, limit = 5) {
     .limit(limit);
 }
 
-// ─── Activity feed ──────────────────────────────────────────────────────────
+// Activity feed
 
-// Most recent product saves (swipe-right) — used for the dashboard activity feed.
+// Most recent product saves (swipe-right) -- used for the dashboard activity feed.
 export async function getBrandRecentSaves(brandId: string, limit = 5) {
   return db
     .select({
@@ -151,7 +163,7 @@ export async function getBrandRecentSaves(brandId: string, limit = 5) {
     .limit(limit);
 }
 
-// Most recently granted customer access — used for the dashboard activity feed.
+// Most recently granted customer access -- used for the dashboard activity feed.
 export async function getBrandRecentAccessGrants(brandId: string, limit = 5) {
   return db
     .select({
