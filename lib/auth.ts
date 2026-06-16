@@ -45,8 +45,7 @@ export const auth = betterAuth({
 
   session: {
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes
+      enabled: false, // disabled — each getSession() reads from DB so role changes take effect immediately
     },
   },
 
