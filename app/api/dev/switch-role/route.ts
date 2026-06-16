@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
     await ensureCustomerRecord(userId);
   }
 
-  // 3. Build response with updated sd_role cookie
+  // 3. Build response — set sd_role and clear the better-auth session cache
+  //    so the next getSession() re-queries the DB and picks up the new role.
   const response = NextResponse.json({ success: true, role });
 
   response.cookies.set("sd_role", role, {
@@ -54,6 +55,15 @@ export async function POST(request: NextRequest) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 30,
+  });
+
+  // Bust better-auth's 5-min cookie cache so the new role takes effect immediately
+  response.cookies.set("better-auth.session_data", "", {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
   });
 
   return response;
