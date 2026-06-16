@@ -105,6 +105,14 @@ export default function AccountPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
+  // Ship-to address
+  type ShipToAddress = { line1: string; line2: string; city: string; state: string; postalCode: string; country: string };
+  const emptyAddress: ShipToAddress = { line1: "", line2: "", city: "", state: "", postalCode: "", country: "" };
+  const [shipTo, setShipTo] = useState<ShipToAddress>(emptyAddress);
+  const [shipToLoaded, setShipToLoaded] = useState(false);
+  const [shipToSaving, setShipToSaving] = useState(false);
+  const [shipToSaved, setShipToSaved] = useState(false);
+
   // Additional contacts
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoaded, setContactsLoaded] = useState(false);
@@ -130,6 +138,16 @@ export default function AccountPage() {
         setProfileLoaded(true);
       })
       .catch(() => setProfileLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/account/ship-to-address")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data) setShipTo({ line1: data.line1 ?? "", line2: data.line2 ?? "", city: data.city ?? "", state: data.state ?? "", postalCode: data.postalCode ?? "", country: data.country ?? "" });
+        setShipToLoaded(true);
+      })
+      .catch(() => setShipToLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -215,6 +233,19 @@ export default function AccountPage() {
     setTimeout(() => setProfileSaved(false), 2000);
   }
 
+  async function handleSaveShipTo() {
+    setShipToSaving(true);
+    setShipToSaved(false);
+    await fetch("/api/account/ship-to-address", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(shipTo),
+    });
+    setShipToSaving(false);
+    setShipToSaved(true);
+    setTimeout(() => setShipToSaved(false), 2000);
+  }
+
   function openAddContact() {
     setEditingContactId(null);
     setContactForm({ ...emptyContactForm });
@@ -288,7 +319,7 @@ export default function AccountPage() {
     }
   }
 
-  if (isPending || !profileLoaded) {
+  if (isPending || !profileLoaded || !shipToLoaded) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center text-gray-400 text-sm">
         Loading...
@@ -447,6 +478,58 @@ export default function AccountPage() {
               }`}
             >
               {profileSaved ? "Saved ✓" : profileSaving ? "Saving..." : "Save profile"}
+            </button>
+          </div>
+        </section>
+
+        {/* Ship-to address */}
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
+            Default shipping address
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            Pre-filled at checkout for purchased items.
+          </p>
+          <div className="space-y-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 1</label>
+              <input type="text" value={shipTo.line1} onChange={(e) => setShipTo({ ...shipTo, line1: e.target.value })} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Address line 2</label>
+              <input type="text" value={shipTo.line2} onChange={(e) => setShipTo({ ...shipTo, line2: e.target.value })} className={inputClass} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">City</label>
+                <input type="text" value={shipTo.city} onChange={(e) => setShipTo({ ...shipTo, city: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">State / Province</label>
+                <input type="text" value={shipTo.state} onChange={(e) => setShipTo({ ...shipTo, state: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Postal code</label>
+                <input type="text" value={shipTo.postalCode} onChange={(e) => setShipTo({ ...shipTo, postalCode: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Country</label>
+                <select value={shipTo.country} onChange={(e) => setShipTo({ ...shipTo, country: e.target.value })} className={inputClass}>
+                  <option value="">Select...</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveShipTo}
+              disabled={shipToSaving || !shipTo.line1.trim() || !shipTo.city.trim() || !shipTo.country}
+              className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors mt-1 ${
+                shipToSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+              } disabled:opacity-50`}
+            >
+              {shipToSaved ? "Saved ✓" : shipToSaving ? "Saving..." : "Save address"}
             </button>
           </div>
         </section>

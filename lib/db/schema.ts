@@ -102,9 +102,14 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull().default("customer"),
-  // Account-level status. Used for brand_admin portal access (see
-  // requireBrandAdmin/requireBrandAdminPage); platform_admin and customer
-  // rows are expected to stay "active" (customers use customerStatusEnum).
+  shipToAddress: jsonb("ship_to_address").$type<{
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }>(),
   status: userStatusEnum("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -220,10 +225,8 @@ export const measurements = pgTable("measurements", {
     .notNull()
     .unique()
     .references(() => customers.id, { onDelete: "cascade" }),
-  gender: text("gender").notNull().default("male"), // 'male' | 'female'
+  gender: text("gender").notNull().default("male"),
   unitSystem: unitSystemEnum("unit_system").notNull().default("imperial"),
-  // All measurement values stored as text (numeric strings) so units stay user-entered
-  // Core fields
   height: text("height"),
   weight: text("weight"),
   shoeSize: text("shoe_size"),
@@ -235,15 +238,11 @@ export const measurements = pgTable("measurements", {
   shoulderWidth: text("shoulder_width"),
   sleeveLength: text("sleeve_length"),
   inseam: text("inseam"),
-  // Extended fields stored in JSONB for flexibility
-  // keys match prototype field keys: bicep, wrist, knee, calf, thigh, rise, etc.
   extended: jsonb("extended").$type<Record<string, string>>(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // --- Customer Contacts -----------------------------------------------------------
-// Secondary contacts (assistant, agent, manager, etc.) for a customer. Visible to
-// the customer and platform admins only -- never exposed to brands.
 
 export const customerContacts = pgTable(
   "customer_contacts",
@@ -254,8 +253,8 @@ export const customerContacts = pgTable(
       .references(() => customers.id, { onDelete: "cascade" }),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    name: text("name"), // kept for backward compat; derived from firstName + lastName
-    role: text("role"), // free text, e.g. "Assistant", "Agent", "Manager"
+    name: text("name"),
+    role: text("role"),
     email: text("email"),
     phone: text("phone"),
     addressLine1: text("address_line1"),
@@ -282,8 +281,8 @@ export const products = pgTable(
     category: brandCategoryEnum("category").notNull(),
     itemType: productTypeEnum("item_type").notNull(),
     description: text("description"),
-    costPrice: integer("cost_price"), // cents -- never returned to customers
-    price: integer("price"), // cents
+    costPrice: integer("cost_price"),
+    price: integer("price"),
     returnPolicy: text("return_policy"),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -457,8 +456,6 @@ export const auditLogs = pgTable(
 );
 
 // --- Platform Settings -----------------------------------------------------------
-// Singleton row (id always 1) holding platform-wide branding/config. Created by
-// migration 0004_platform_settings.sql.
 
 export const platformSettings = pgTable("platform_settings", {
   id: integer("id").primaryKey().default(1),
