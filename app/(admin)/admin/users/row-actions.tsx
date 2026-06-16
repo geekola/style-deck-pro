@@ -232,7 +232,6 @@ export function RowActions({
   }
 
   const actions: RowAction[] = [
-    { key: "details", label: expanded ? "Hide details" : "View details", onClick: onToggleDetails },
     { key: "edit", label: "Edit", onClick: () => setEditing(true) },
   ];
 

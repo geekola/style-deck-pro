@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RowActions } from "./row-actions";
-import { AddAdminForm } from "./add-admin-form";
-import { BrandAdminsList, type BrandAdmin } from "./brand-admins-list";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Tabs } from "@/components/admin/tabs";
@@ -21,7 +20,7 @@ export type BrandRow = {
   status: "pending" | "approved" | "suspended" | "rejected";
   statusReason: string | null;
   createdAt: string;
-  admins: BrandAdmin[];
+  admins: { userId: string; name: string; email: string; status: "active" | "suspended" }[];
 };
 
 type Tab = "all" | "pending" | "approved" | "suspended" | "rejected";
@@ -192,55 +191,28 @@ export function BrandsTable({
 }
 
 function Row({ row }: { row: BrandRow }) {
-  const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
 
   return (
-    <>
-      <tr id={`brand-${row.id}`} className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-        <td className="py-3">
-          <div className="font-medium">{row.name}</div>
-          <div className="text-xs text-gray-400 dark:text-gray-500">{row.adminEmail}</div>
-        </td>
-        <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.category}</td>
-        <td className="py-3">
-          <StatusBadge status={row.status} />
-        </td>
-        <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
-          {new Date(row.createdAt).toLocaleDateString()}
-        </td>
-        <td className="py-3 text-right">
-          <RowActions row={row} expanded={expanded} onToggleDetails={() => setExpanded((e) => !e)} />
-        </td>
-      </tr>
-
-      {expanded && (
-        <tr className="bg-gray-50 dark:bg-gray-900/60">
-          <td colSpan={5} className="px-3 py-3 text-xs text-gray-600 dark:text-gray-400">
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <span className="text-gray-400 dark:text-gray-500">Fulfillment email:</span> {row.fulfillmentEmail}
-              </div>
-              <div>
-                <span className="text-gray-400 dark:text-gray-500">Access policy:</span>{" "}
-                <span className="capitalize">{row.accessPolicy.replace("_", " ")}</span>
-              </div>
-              <div className="col-span-2 truncate">
-                <span className="text-gray-400 dark:text-gray-500">Brand ID:</span> {row.id}
-              </div>
-              {row.statusReason && (
-                <div className="col-span-2">
-                  <span className="text-gray-400 dark:text-gray-500">Status reason:</span> {row.statusReason}
-                </div>
-              )}
-            </div>
-
-            {row.status === "approved" && <AddAdminForm brandId={row.id} />}
-            {(row.status === "approved" || row.status === "suspended") && (
-              <BrandAdminsList brandId={row.id} admins={row.admins} />
-            )}
-          </td>
-        </tr>
-      )}
-    </>
+    <tr
+      id={`brand-${row.id}`}
+      className="hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+      onClick={() => router.push(`/admin/brands/${row.id}`)}
+    >
+      <td className="py-3">
+        <div className="font-medium">{row.name}</div>
+        <div className="text-xs text-gray-400 dark:text-gray-500">{row.adminEmail}</div>
+      </td>
+      <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.category}</td>
+      <td className="py-3">
+        <StatusBadge status={row.status} />
+      </td>
+      <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
+        {new Date(row.createdAt).toLocaleDateString()}
+      </td>
+      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        <RowActions row={row} />
+      </td>
+    </tr>
   );
 }

@@ -191,7 +191,7 @@ function Row({ row }: { row: UserTableRow }) {
 
   return (
     <>
-      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
+      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer" onClick={toggleDetails}>
         <td className="py-3">
           <div className="font-medium">{row.name}</div>
           <div className="text-xs text-gray-400 dark:text-gray-500">{row.email}</div>
@@ -208,7 +208,7 @@ function Row({ row }: { row: UserTableRow }) {
         <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
           {new Date(row.joinedAt).toLocaleDateString()}
         </td>
-        <td className="py-3 text-right">
+        <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
           <RowActions row={row} expanded={expanded} onToggleDetails={toggleDetails} />
         </td>
       </tr>

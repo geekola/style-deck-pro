@@ -3,7 +3,6 @@ import { requirePlatformAdminPage } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { users, brands } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
-import { getPendingBrands } from "@/lib/db/queries/admin";
 
 export default async function AdminDashboardPage() {
   await requirePlatformAdminPage();
@@ -14,14 +13,12 @@ export default async function AdminDashboardPage() {
     [pendingBrands],
     [suspendedBrands],
     [suspendedUsers],
-    pendingBrandsList,
   ] = await Promise.all([
     db.select({ count: count() }).from(users),
     db.select({ count: count() }).from(brands).where(eq(brands.status, "approved")),
     db.select({ count: count() }).from(brands).where(eq(brands.status, "pending")),
     db.select({ count: count() }).from(brands).where(eq(brands.status, "suspended")),
     db.select({ count: count() }).from(users).where(eq(users.status, "suspended")),
-    getPendingBrands(5),
   ]);
 
   const needsAttention = suspendedBrands.count + suspendedUsers.count;
@@ -62,41 +59,6 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      <section>
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          Needs approval
-        </h2>
-        {pendingBrandsList.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Nothing pending approval.</p>
-        ) : (
-          <ul className="space-y-2">
-            {pendingBrandsList.map((b) => (
-              <li key={b.id}>
-                <Link
-                  href={`/admin/brands#brand-${b.id}`}
-                  className="block border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/60"
-                >
-                  <div className="font-medium truncate">{b.name}</div>
-                  <div className="text-gray-400 dark:text-gray-500 text-xs truncate capitalize">
-                    {b.category} · {b.adminEmail}
-                  </div>
-                  <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
-                    Applied {b.createdAt.toLocaleDateString()}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {pendingBrands.count > pendingBrandsList.length && (
-          <Link
-            href="/admin/brands"
-            className="text-xs text-gray-500 dark:text-gray-400 hover:underline mt-2 inline-block"
-          >
-            View all {pendingBrands.count} →
-          </Link>
-        )}
-      </section>
     </div>
   );
 }

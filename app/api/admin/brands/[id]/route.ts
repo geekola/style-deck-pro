@@ -30,6 +30,25 @@ const patchSchema = z.object({
 });
 
 // Allowed status transitions, keyed by target status -> allowed current statuses.
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await requirePlatformAdmin();
+  const { id } = await params;
+
+  const [brand] = await db.select().from(brands).where(eq(brands.id, id)).limit(1);
+  if (!brand) return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+
+  const admins = await db
+    .select({ userId: users.id, name: users.name, email: users.email, status: users.status })
+    .from(brandAdmins)
+    .innerJoin(users, eq(users.id, brandAdmins.userId))
+    .where(eq(brandAdmins.brandId, id));
+
+  return NextResponse.json({ ...brand, admins });
+}
+
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   approved: ["pending", "rejected", "suspended"],
   rejected: ["pending"],

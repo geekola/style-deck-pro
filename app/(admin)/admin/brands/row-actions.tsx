@@ -14,15 +14,7 @@ const labelClass = "block text-xs font-medium text-gray-500 dark:text-gray-400 m
 
 type Mode = "none" | "edit" | "delete" | "reason" | "tempPassword";
 
-export function RowActions({
-  row,
-  expanded,
-  onToggleDetails,
-}: {
-  row: BrandRow;
-  expanded: boolean;
-  onToggleDetails: () => void;
-}) {
+export function RowActions({ row }: { row: BrandRow }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("none");
   const [reasonType, setReasonType] = useState<"rejected" | "suspended" | null>(null);
@@ -331,9 +323,7 @@ export function RowActions({
     );
   }
 
-  const actions: RowAction[] = [
-    { key: "details", label: expanded ? "Hide details" : "View details", onClick: onToggleDetails },
-  ];
+  const actions: RowAction[] = [];
 
   if (row.status === "pending") {
     actions.push({ key: "approve", label: "Approve", onClick: () => submitStatus("approved"), disabled: loading });
