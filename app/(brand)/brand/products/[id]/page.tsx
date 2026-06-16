@@ -31,8 +31,10 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [settingHero, setSettingHero] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +68,7 @@ export default function EditProductPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
+    setSaved(false);
     setError(null);
 
     const form = new FormData(e.currentTarget);
@@ -96,7 +99,9 @@ export default function EditProductPage() {
       return;
     }
 
-    router.push("/brand/products");
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   async function handleDeleteProduct() {
@@ -145,6 +150,25 @@ export default function EditProductPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  async function handleSetHero(imageId: string) {
+    setSettingHero(imageId);
+    setError(null);
+
+    const res = await fetch(`/api/brand/products/images?imageId=${imageId}`, {
+      method: "PUT",
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Failed to set hero image.");
+      setSettingHero(null);
+      return;
+    }
+
+    setImages((prev) => prev.map((img) => ({ ...img, hero: img.id === imageId })));
+    setSettingHero(null);
+  }
+
   async function handleImageDelete(imageId: string) {
     if (!confirm("Remove this image?")) return;
     setError(null);
@@ -163,7 +187,7 @@ export default function EditProductPage() {
   }
 
   if (loading) {
-    return <div className="max-w-2xl mx-auto px-6 py-10 text-sm text-gray-500 dark:text-gray-400">Loading…</div>;
+    return <div className="max-w-2xl mx-auto px-6 py-10 text-sm text-gray-500 dark:text-gray-400">Loading...</div>;
   }
 
   if (notFound || !product) {
@@ -171,7 +195,7 @@ export default function EditProductPage() {
       <div className="max-w-2xl mx-auto px-6 py-10">
         <h1 className="text-2xl font-semibold mb-4">Product not found</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          This product doesn&apos;t exist or doesn&apos;t belong to your brand.
+          This product does not exist or does not belong to your brand.
         </p>
         <Link href="/brand/products" className="text-sm underline">
           Back to products
@@ -182,17 +206,25 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold">Edit product</h1>
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            product.active
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-          }`}
+      <div className="mb-8">
+        <Link
+          href="/brand/products"
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1 mb-3"
         >
-          {product.active ? "Active" : "Inactive"}
-        </span>
+          <span>&#8592;</span> Products
+        </Link>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Edit product</h1>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              product.active
+                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            {product.active ? "Active" : "Inactive"}
+          </span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -229,7 +261,7 @@ export default function EditProductPage() {
               placeholder="0.00"
             />
           </Field>
-          <Field label="Cost price (USD)" hint="Internal only — never shown to customers">
+          <Field label="Cost price (USD)" hint="Internal only, never shown to customers">
             <input
               name="costPrice"
               type="number"
@@ -257,21 +289,20 @@ export default function EditProductPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
             disabled={saving}
             className="bg-black dark:bg-white dark:text-black text-white text-sm px-5 py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving..." : saved ? "Saved!" : "Save changes"}
           </button>
-          <button
-            type="button"
-            onClick={() => router.push("/brand/products")}
-            className="border border-gray-300 dark:border-gray-600 text-sm px-5 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900"
+          <Link
+            href="/brand/products"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             Cancel
-          </button>
+          </Link>
         </div>
       </form>
 
@@ -282,21 +313,33 @@ export default function EditProductPage() {
           <div className="grid grid-cols-3 gap-3 mb-4">
             {images.map((img) => (
               <div key={img.id} className="relative group">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={img.url}
                   alt=""
-                  className="w-full h-28 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                  className={`w-full h-28 object-cover rounded-md border transition-opacity ${
+                    img.hero
+                      ? "border-black dark:border-white"
+                      : "border-gray-200 dark:border-gray-700"
+                  } ${settingHero === img.id ? "opacity-50" : ""}`}
                 />
-                {img.hero && (
-                  <span className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                {img.hero ? (
+                  <span className="absolute top-1 left-1 bg-black dark:bg-white dark:text-black text-white text-xs px-1.5 py-0.5 rounded font-medium">
                     Hero
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={settingHero !== null}
+                    onClick={() => handleSetHero(img.id)}
+                    className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                  >
+                    Set as hero
+                  </button>
                 )}
                 <button
                   type="button"
                   onClick={() => handleImageDelete(img.id)}
-                  className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Remove
                 </button>
@@ -307,11 +350,9 @@ export default function EditProductPage() {
 
         <label className="inline-block">
           <span
-            className={`border border-gray-300 dark:border-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 cursor-pointer inline-block ${
-              uploading ? "opacity-50 pointer-events-none" : ""
-            }`}
+            className={`border border-gray-300 dark:border-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 cursor-pointer inline-block${uploading ? " opacity-50 pointer-events-none" : ""}`}
           >
-            {uploading ? "Uploading…" : "Add image"}
+            {uploading ? "Uploading..." : "Add image"}
           </span>
           <input
             ref={fileInputRef}
@@ -322,7 +363,9 @@ export default function EditProductPage() {
             disabled={uploading}
           />
         </label>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPEG, PNG, or WebP. Max 10MB. First image is the hero image.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          JPEG, PNG, or WebP. Max 10MB. Hover an image and click Set as hero to designate it for discovery.
+        </p>
       </div>
 
       <div className="mt-10 border-t border-gray-200 dark:border-gray-700 pt-8">
@@ -333,7 +376,7 @@ export default function EditProductPage() {
           disabled={deleting}
           className="border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm px-4 py-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
         >
-          {deleting ? "Deleting…" : "Delete product"}
+          {deleting ? "Deleting..." : "Delete product"}
         </button>
       </div>
     </div>
@@ -351,9 +394,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
       {children}
-      {hint && <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }

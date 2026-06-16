@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireBrandAdmin } from "@/lib/auth-session";
 import { db } from "@/lib/db";
 import { productImages } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { put, del } from "@vercel/blob";
 import { getBrandProduct } from "@/lib/db/queries/brand";
 
@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "productId required" }, { status: 400 });
   }
 
-  // Verify product belongs to this brand
   const product = await getBrandProduct(brandId, productId);
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+  const MAX_SIZE = 10 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
     return NextResponse.json({ error: "File too large (max 10 MB)" }, { status: 400 });
   }
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
     contentType: file.type,
   });
 
-  // Count existing images to determine display order and hero status
   const existing = await db
     .select({ id: productImages.id })
     .from(productImages)
@@ -56,12 +54,46 @@ export async function POST(request: NextRequest) {
     .values({
       productId,
       url: blob.url,
-      hero: existing.length === 0, // first image is hero
+      hero: existing.length === 0,
       displayOrder: existing.length,
     })
     .returning({ id: productImages.id, url: productImages.url, hero: productImages.hero });
 
   return NextResponse.json(image, { status: 201 });
+}
+
+// PUT /api/brand/products/images?imageId=xxx
+// Sets the given image as the hero for its product (clears others).
+export async function PUT(request: NextRequest) {
+  const { brandId } = await requireBrandAdmin();
+  const imageId = request.nextUrl.searchParams.get("imageId");
+
+  if (!imageId) {
+    return NextResponse.json({ error: "imageId required" }, { status: 400 });
+  }
+
+  const [image] = await db
+    .select({ id: productImages.id, productId: productImages.productId })
+    .from(productImages)
+    .where(eq(productImages.id, imageId))
+    .limit(1);
+
+  if (!image) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const product = await getBrandProduct(brandId, image.productId);
+  if (!product) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  await db
+    .update(productImages)
+    .set({ hero: false })
+    .where(and(eq(productImages.productId, image.productId), ne(productImages.id, imageId)));
+
+  await db
+    .update(productImages)
+    .set({ hero: true })
+    .where(eq(productImages.id, imageId));
+
+  return new Response(null, { status: 204 });
 }
 
 // DELETE /api/brand/products/images?imageId=xxx
@@ -85,7 +117,6 @@ export async function DELETE(request: NextRequest) {
 
   if (!image) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Verify product belongs to this brand
   const product = await getBrandProduct(brandId, image.productId);
   if (!product) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

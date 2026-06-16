@@ -6,7 +6,7 @@
  */
 
 import { db } from "@/lib/db";
-import { brands, brandAdmins, products, productImages, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
+import { brands, products, productImages, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 
 // Brand
