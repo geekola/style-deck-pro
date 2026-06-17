@@ -21,6 +21,7 @@ export async function GET(
       type: customers.type,
       industry: customers.industry,
       grantedAt: brandAccess.grantedAt,
+      status: customers.status,
     })
     .from(brandAccess)
     .innerJoin(customers, eq(customers.id, brandAccess.customerId))
