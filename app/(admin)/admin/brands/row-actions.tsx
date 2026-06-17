@@ -5,14 +5,10 @@ import { useRouter } from "next/navigation";
 import type { BrandRow } from "./brands-table";
 import { ActionsMenu, type RowAction } from "@/components/admin/actions-menu";
 
-const CATEGORIES = ["casual", "business", "formal", "custom"] as const;
-const ACCESS_POLICIES = ["open", "selective", "invite_only"] as const;
-
 const inputClass =
   "w-full text-xs border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";
-const labelClass = "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
 
-type Mode = "none" | "edit" | "delete" | "reason" | "tempPassword";
+type Mode = "none" | "delete" | "reason" | "tempPassword";
 
 export function RowActions({ row }: { row: BrandRow }) {
   const router = useRouter();
@@ -20,13 +16,6 @@ export function RowActions({ row }: { row: BrandRow }) {
   const [reasonType, setReasonType] = useState<"rejected" | "suspended" | null>(null);
   const [reason, setReason] = useState("");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: row.name,
-    category: row.category,
-    adminEmail: row.adminEmail,
-    fulfillmentEmail: row.fulfillmentEmail,
-    accessPolicy: row.accessPolicy,
-  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,32 +58,6 @@ export function RowActions({ row }: { row: BrandRow }) {
     setTempPassword(null);
     setMode("none");
     router.refresh();
-  }
-
-  async function submitEdit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/brands/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? "Something went wrong");
-        return;
-      }
-
-      setMode("none");
-      router.refresh();
-    } catch {
-      setError("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function submitDelete() {
@@ -186,107 +149,6 @@ export function RowActions({ row }: { row: BrandRow }) {
     );
   }
 
-  if (mode === "edit") {
-    return (
-      <ActionsMenu
-        actions={[]}
-        panelWidth="w-72"
-        panel={
-          <form onSubmit={submitEdit} className="space-y-2">
-            <div>
-              <label className={labelClass}>Brand name</label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className={labelClass}>Category</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className={inputClass}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Access policy</label>
-                <select
-                  value={form.accessPolicy}
-                  onChange={(e) => setForm({ ...form, accessPolicy: e.target.value })}
-                  className={inputClass}
-                >
-                  {ACCESS_POLICIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Admin email</label>
-              <input
-                type="email"
-                required
-                value={form.adminEmail}
-                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Fulfillment email</label>
-              <input
-                type="email"
-                required
-                value={form.fulfillmentEmail}
-                onChange={(e) => setForm({ ...form, fulfillmentEmail: e.target.value })}
-                className={inputClass}
-              />
-            </div>
-            {error && <p className="text-xs text-red-600">{error}</p>}
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setMode("none");
-                  setForm({
-                    name: row.name,
-                    category: row.category,
-                    adminEmail: row.adminEmail,
-                    fulfillmentEmail: row.fulfillmentEmail,
-                    accessPolicy: row.accessPolicy,
-                  });
-                  setError(null);
-                }}
-                className="border border-gray-200 dark:border-gray-700 text-xs px-3 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-black dark:bg-white dark:text-black text-white text-xs px-3 py-1.5 rounded-md hover:bg-gray-800 disabled:opacity-50"
-              >
-                {loading ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </form>
-        }
-      />
-    );
-  }
-
   if (mode === "delete") {
     return (
       <ActionsMenu
@@ -357,7 +219,8 @@ export function RowActions({ row }: { row: BrandRow }) {
     actions.push({ key: "approve", label: "Approve", onClick: () => submitStatus("approved"), disabled: loading });
   }
 
-  actions.push({ key: "edit", label: "Edit", onClick: () => setMode("edit") });
+  // Edit navigates to the brand profile page (which has a full edit form)
+  actions.push({ key: "edit", label: "Edit", onClick: () => router.push(`/admin/brands/${row.id}`) });
   actions.push({ key: "delete", label: "Delete", onClick: () => setMode("delete"), variant: "danger" });
 
   return (

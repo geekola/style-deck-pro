@@ -8,24 +8,31 @@ import {
   changeEmail,
   changePassword,
 } from "@/lib/auth-client";
-import { ThemeToggle } from "@/components/theme-toggle";
+
+const inputClass =
+  "w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";
+
+const sectionHeadingClass =
+  "text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold";
 
 export default function AdminAccountPage() {
   const { data: session, isPending } = useSession();
 
-  // Profile (name)
+  // Profile
+  const [companyName, setCompanyName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [nameSaving, setNameSaving] = useState(false);
-  const [nameSaved, setNameSaved] = useState(false);
-
-  // Email
   const [email, setEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Email change (separate flow — requires verification)
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Password
+  // Security
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,12 +40,13 @@ export default function AdminAccountPage() {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Branding (platform logo)
+  // Branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoLoading, setLogoLoading] = useState(true);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
 
+  // Populate from session
   useEffect(() => {
     if (session?.user) {
       setFirstName(session.user.firstName ?? "");
@@ -47,61 +55,55 @@ export default function AdminAccountPage() {
     }
   }, [session?.user]);
 
+  // Fetch platform settings (logoUrl + companyName)
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setLogoUrl(data.logoUrl ?? null);
+        if (data) {
+          setLogoUrl(data.logoUrl ?? null);
+          setCompanyName(data.companyName ?? "");
+        }
       })
       .finally(() => setLogoLoading(false));
   }, []);
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── Profile ────────────────────────────────────────────────────────────────
 
-    setLogoUploading(true);
-    setLogoError(null);
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    setProfileSaved(false);
+    setProfileError(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      // Save name via better-auth
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      await updateUser({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        name: fullName,
+      } as Parameters<typeof updateUser>[0]);
 
-    const res = await fetch("/api/admin/settings/logo", { method: "POST", body: formData });
-    setLogoUploading(false);
-    e.target.value = "";
+      // Save company name via platform settings API
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName: companyName.trim() || null }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setLogoError(data?.error ?? "Could not upload logo.");
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setProfileError(data?.error ?? "Could not save profile.");
+        return;
+      }
+
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch {
+      setProfileError("Something went wrong.");
+    } finally {
+      setProfileSaving(false);
     }
-
-    const data = await res.json();
-    setLogoUrl(data.logoUrl);
-  }
-
-  async function handleRemoveLogo() {
-    setLogoUploading(true);
-    setLogoError(null);
-    const res = await fetch("/api/admin/settings/logo", { method: "DELETE" });
-    setLogoUploading(false);
-
-    if (!res.ok && res.status !== 204) {
-      setLogoError("Could not remove logo.");
-      return;
-    }
-
-    setLogoUrl(null);
-  }
-
-  async function handleSaveName() {
-    setNameSaving(true);
-    setNameSaved(false);
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    await updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), name: fullName } as Parameters<typeof updateUser>[0]);
-    setNameSaving(false);
-    setNameSaved(true);
-    setTimeout(() => setNameSaved(false), 2000);
   }
 
   async function handleSaveEmail() {
@@ -122,6 +124,8 @@ export default function AdminAccountPage() {
       );
     }
   }
+
+  // ── Security ───────────────────────────────────────────────────────────────
 
   async function handleChangePassword() {
     setPasswordMessage(null);
@@ -154,6 +158,51 @@ export default function AdminAccountPage() {
     }
   }
 
+  // ── Logo ───────────────────────────────────────────────────────────────────
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    setLogoError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/admin/settings/logo", {
+      method: "POST",
+      body: formData,
+    });
+    setLogoUploading(false);
+    e.target.value = "";
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setLogoError(data?.error ?? "Could not upload logo.");
+      return;
+    }
+
+    const data = await res.json();
+    setLogoUrl(data.logoUrl);
+  }
+
+  async function handleRemoveLogo() {
+    setLogoUploading(true);
+    setLogoError(null);
+    const res = await fetch("/api/admin/settings/logo", { method: "DELETE" });
+    setLogoUploading(false);
+
+    if (!res.ok && res.status !== 204) {
+      setLogoError("Could not remove logo.");
+      return;
+    }
+
+    setLogoUrl(null);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (isPending) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-950 flex items-center justify-center text-gray-400 text-sm">
@@ -161,6 +210,15 @@ export default function AdminAccountPage() {
       </div>
     );
   }
+
+  const lastLoginRaw = session?.session?.updatedAt ?? session?.session?.createdAt;
+  const lastLoginDisplay = lastLoginRaw
+    ? new Date(lastLoginRaw).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "—";
 
   return (
     <div className="max-w-lg mx-auto px-6 py-8">
@@ -175,107 +233,48 @@ export default function AdminAccountPage() {
       </h1>
 
       <div className="space-y-8">
-        {/* Appearance */}
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Appearance
-          </h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Theme</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Switch between light and dark mode.
-              </p>
-            </div>
-            <ThemeToggle />
-          </div>
-        </section>
 
-        {/* Branding */}
+        {/* ── Profile ─────────────────────────────────────────────────────── */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Branding
-          </h2>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center overflow-hidden shrink-0">
-              {logoLoading ? null : logoUrl ? (
-                <img src={logoUrl} alt="Platform logo" className="w-full h-full object-contain" />
-              ) : (
-                <span className="text-xs text-gray-400">No logo</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">Platform logo</p>
-              <p className="text-xs text-gray-400 mb-2">
-                Shown in the navigation bar across the admin, brand, and customer portals.
-                JPEG, PNG, WebP, or SVG, up to 2 MB.
-              </p>
-              <div className="flex gap-2">
-                <label className="px-3.5 py-2 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-50">
-                  {logoUploading ? "Uploading..." : logoUrl ? "Replace" : "Upload"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                    onChange={handleLogoUpload}
-                    disabled={logoUploading}
-                    className="hidden"
-                  />
-                </label>
-                {logoUrl && (
-                  <button
-                    onClick={handleRemoveLogo}
-                    disabled={logoUploading}
-                    className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-              {logoError && <p className="text-xs text-red-500 mt-1.5">{logoError}</p>}
-            </div>
-          </div>
-        </section>
-
-        {/* Profile */}
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Profile
-          </h2>
+          <h2 className={sectionHeadingClass}>Profile</h2>
           <div className="space-y-3">
+
             <div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    First name
-                  </label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Last name
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                  />
-                </div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                Company name
+              </label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="e.g. StyleDeck"
+                className={inputClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  First name
+                </label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={inputClass}
+                />
               </div>
-              <button
-                onClick={handleSaveName}
-                disabled={nameSaving || !firstName.trim()}
-                className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
-                  nameSaved ? "bg-green-500" : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                }`}
-              >
-                {nameSaved ? "Saved ✓" : nameSaving ? "Saving..." : "Save name"}
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
             </div>
 
             <div>
@@ -287,7 +286,7 @@ export default function AdminAccountPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                  className={`flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white`}
                 />
                 <button
                   onClick={handleSaveEmail}
@@ -307,14 +306,28 @@ export default function AdminAccountPage() {
                 <p className="text-xs text-red-500 mt-1.5">{emailError}</p>
               )}
             </div>
+
+            {profileError && (
+              <p className="text-xs text-red-500">{profileError}</p>
+            )}
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving || !firstName.trim()}
+              className={`w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
+                profileSaved
+                  ? "bg-green-500"
+                  : "bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+              } disabled:opacity-50`}
+            >
+              {profileSaved ? "Saved ✓" : profileSaving ? "Saving..." : "Save profile"}
+            </button>
           </div>
         </section>
 
-        {/* Password */}
+        {/* ── Security ────────────────────────────────────────────────────── */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-400 border-b-2 border-black dark:border-white pb-2 mb-4 font-semibold">
-            Password
-          </h2>
+          <h2 className={sectionHeadingClass}>Security</h2>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -324,7 +337,7 @@ export default function AdminAccountPage() {
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                className={inputClass}
               />
             </div>
             <div>
@@ -336,7 +349,7 @@ export default function AdminAccountPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                className={inputClass}
               />
             </div>
             <div>
@@ -347,7 +360,7 @@ export default function AdminAccountPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+                className={inputClass}
               />
             </div>
             {passwordMessage && (
@@ -359,12 +372,82 @@ export default function AdminAccountPage() {
             <button
               onClick={handleChangePassword}
               disabled={passwordSaving || !currentPassword || !newPassword || !confirmPassword}
-              className="w-full py-3 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
               {passwordSaving ? "Updating..." : "Change password"}
             </button>
           </div>
         </section>
+
+        {/* ── Branding ────────────────────────────────────────────────────── */}
+        <section>
+          <h2 className={sectionHeadingClass}>Branding</h2>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center overflow-hidden shrink-0">
+              {logoLoading ? null : logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Platform logo"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span className="text-xs text-gray-400">No logo</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                Platform logo
+              </p>
+              <p className="text-xs text-gray-400 mb-2">
+                Shown in the navigation bar. JPEG, PNG, WebP, or SVG — up to 2 MB.
+              </p>
+              <div className="flex gap-2">
+                <label className="px-3.5 py-2 rounded-xl text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-50">
+                  {logoUploading ? "Uploading..." : logoUrl ? "Replace" : "Upload new logo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                    onChange={handleLogoUpload}
+                    disabled={logoUploading}
+                    className="hidden"
+                  />
+                </label>
+                {logoUrl && (
+                  <button
+                    onClick={handleRemoveLogo}
+                    disabled={logoUploading}
+                    className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {logoError && (
+                <p className="text-xs text-red-500 mt-1.5">{logoError}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Account Information ──────────────────────────────────────────── */}
+        <section>
+          <h2 className={sectionHeadingClass}>Account information</h2>
+          <dl className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <dt className="text-gray-500 dark:text-gray-400">Role</dt>
+              <dd className="font-medium text-gray-900 dark:text-white">Super Admin</dd>
+            </div>
+            <div className="flex justify-between text-sm">
+              <dt className="text-gray-500 dark:text-gray-400">Last login</dt>
+              <dd className="font-medium text-gray-900 dark:text-white">{lastLoginDisplay}</dd>
+            </div>
+            <div className="flex justify-between text-sm">
+              <dt className="text-gray-500 dark:text-gray-400">Email</dt>
+              <dd className="font-medium text-gray-900 dark:text-white">{session?.user.email ?? "—"}</dd>
+            </div>
+          </dl>
+        </section>
+
       </div>
     </div>
   );

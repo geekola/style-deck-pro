@@ -8,12 +8,18 @@ import { eq } from "drizzle-orm";
  */
 export async function getPlatformSettings() {
   const [row] = await db
-    .select({ logoUrl: platformSettings.logoUrl })
+    .select({
+      companyName: platformSettings.companyName,
+      logoUrl: platformSettings.logoUrl,
+    })
     .from(platformSettings)
     .where(eq(platformSettings.id, 1))
     .limit(1);
 
-  return { logoUrl: row?.logoUrl ?? null };
+  return {
+    companyName: row?.companyName ?? null,
+    logoUrl: row?.logoUrl ?? null,
+  };
 }
 
 /**

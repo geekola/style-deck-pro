@@ -476,6 +476,7 @@ export const auditLogs = pgTable(
 
 export const platformSettings = pgTable("platform_settings", {
   id: integer("id").primaryKey().default(1),
+  companyName: text("company_name"),
   logoUrl: text("logo_url"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -515,7 +516,8 @@ export const brandsRelations = relations(brands, ({ many }) => ({
   brandAdmins: many(brandAdmins),
   products: many(products),
   brandAccess: many(brandAccess),
-  giftingAllowances: many(giftingAllowances),  orders: many(orders),
+  giftingAllowances: many(giftingAllowances),
+  orders: many(orders),
   invites: many(invites),
 }));
 
