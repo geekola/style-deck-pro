@@ -6,10 +6,21 @@
  */
 
 import { db } from "@/lib/db";
-import { brands, products, productImages, brandAccess, giftingAllowances, orders, customers, users, savedProducts } from "@/lib/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import {
+  brands,
+  products,
+  productImages,
+  brandAccess,
+  giftingAllowances,
+  orders,
+  customers,
+  users,
+  savedProducts,
+  swipeEvents,
+} from "@/lib/db/schema";
+import { eq, and, desc, inArray, count, sql } from "drizzle-orm";
 
-// Brand
+// ── Brand ──────────────────────────────────────────────────────────────────────
 
 export async function getBrandById(brandId: string) {
   const [brand] = await db
@@ -28,7 +39,7 @@ export async function assertBrandApproved(brandId: string) {
   return brand;
 }
 
-// Products
+// ── Products ───────────────────────────────────────────────────────────────────
 
 export async function getBrandProducts(brandId: string) {
   const prods = await db
@@ -59,7 +70,7 @@ export async function getBrandProduct(brandId: string, productId: string) {
   return product ?? null;
 }
 
-// Access
+// ── Access ─────────────────────────────────────────────────────────────────────
 
 export async function getBrandAccessList(brandId: string) {
   return db
@@ -79,7 +90,7 @@ export async function customerHasAccess(brandId: string, customerId: string) {
   return !!row;
 }
 
-// Gifting
+// ── Gifting ────────────────────────────────────────────────────────────────────
 
 export async function getGiftingAllowance(brandId: string, customerId: string) {
   const [row] = await db
@@ -102,7 +113,7 @@ export async function getBrandGiftingAllowances(brandId: string) {
     .where(eq(giftingAllowances.brandId, brandId));
 }
 
-// Orders
+// ── Orders ─────────────────────────────────────────────────────────────────────
 
 export async function getBrandOrders(brandId: string) {
   return db
@@ -121,7 +132,7 @@ export async function getBrandOrder(brandId: string, orderId: string) {
   return order ?? null;
 }
 
-// Oldest unshipped orders first -- used for the "Needs shipping" dashboard list.
+/** Oldest unshipped orders first — used for "Needs shipping" widget. */
 export async function getBrandPendingOrders(brandId: string, limit = 5) {
   return db
     .select({
@@ -142,9 +153,49 @@ export async function getBrandPendingOrders(brandId: string, limit = 5) {
     .limit(limit);
 }
 
-// Activity feed
+/** Pending gift orders specifically — for the Gifting & Fulfillment panel. */
+export async function getBrandPendingGifts(brandId: string, limit = 6) {
+  return db
+    .select({
+      id: orders.id,
+      productId: orders.productId,
+      productName: products.name,
+      customerName: users.name,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .innerJoin(customers, eq(orders.customerId, customers.id))
+    .innerJoin(users, eq(customers.userId, users.id))
+    .where(
+      and(
+        eq(orders.brandId, brandId),
+        eq(orders.orderType, "gift"),
+        eq(orders.status, "pending")
+      )
+    )
+    .orderBy(orders.createdAt)
+    .limit(limit);
+}
 
-// Most recent product saves (swipe-right) -- used for the dashboard activity feed.
+/** Count of shipped gift orders (gifting conversions). */
+export async function getBrandGiftingConversions(brandId: string) {
+  const [row] = await db
+    .select({ count: count() })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.brandId, brandId),
+        eq(orders.orderType, "gift"),
+        eq(orders.status, "shipped")
+      )
+    );
+  return Number(row?.count ?? 0);
+}
+
+// ── Activity feed ──────────────────────────────────────────────────────────────
+
+/** Most recent product saves — used for the dashboard activity feed. */
 export async function getBrandRecentSaves(brandId: string, limit = 5) {
   return db
     .select({
@@ -163,7 +214,7 @@ export async function getBrandRecentSaves(brandId: string, limit = 5) {
     .limit(limit);
 }
 
-// Most recently granted customer access -- used for the dashboard activity feed.
+/** Most recently granted customer access — used for the dashboard activity feed. */
 export async function getBrandRecentAccessGrants(brandId: string, limit = 5) {
   return db
     .select({
@@ -177,4 +228,65 @@ export async function getBrandRecentAccessGrants(brandId: string, limit = 5) {
     .where(eq(brandAccess.brandId, brandId))
     .orderBy(desc(brandAccess.grantedAt))
     .limit(limit);
+}
+
+// ── Swipe & performance analytics ─────────────────────────────────────────────
+
+/** Overall swipe stats for the brand's products. */
+export async function getBrandSwipeStats(brandId: string) {
+  const [row] = await db
+    .select({
+      total: count(),
+      rights: sql<number>`count(*) filter (where ${swipeEvents.direction} = 'right')`,
+    })
+    .from(swipeEvents)
+    .innerJoin(products, eq(products.id, swipeEvents.productId))
+    .where(eq(products.brandId, brandId));
+
+  const total = Number(row?.total ?? 0);
+  const rights = Number(row?.rights ?? 0);
+  return {
+    totalSwipes: total,
+    rightSwipes: rights,
+    rightSwipeRate: total > 0 ? Math.round((rights / total) * 100) : null,
+  };
+}
+
+/** Top N products by right-swipe count, with thumbnail, for performance leaderboard. */
+export async function getBrandProductPerformance(brandId: string, limit = 5) {
+  const rows = await db
+    .select({
+      productId: swipeEvents.productId,
+      productName: products.name,
+      total: count(),
+      rights: sql<number>`count(*) filter (where ${swipeEvents.direction} = 'right')`,
+    })
+    .from(swipeEvents)
+    .innerJoin(products, eq(products.id, swipeEvents.productId))
+    .where(eq(products.brandId, brandId))
+    .groupBy(swipeEvents.productId, products.name)
+    .orderBy(sql`count(*) filter (where ${swipeEvents.direction} = 'right') desc`)
+    .limit(limit);
+
+  if (rows.length === 0) return [];
+
+  const productIds = rows.map((r) => r.productId);
+  const heroImages = await db
+    .select({ productId: productImages.productId, url: productImages.url })
+    .from(productImages)
+    .where(and(inArray(productImages.productId, productIds), eq(productImages.hero, true)));
+  const heroMap = new Map(heroImages.map((i) => [i.productId, i.url]));
+
+  return rows.map((r) => {
+    const total = Number(r.total);
+    const rights = Number(r.rights);
+    return {
+      productId: r.productId,
+      productName: r.productName,
+      totalSwipes: total,
+      rightSwipes: rights,
+      rightSwipeRate: total > 0 ? Math.round((rights / total) * 100) : 0,
+      thumbnailUrl: heroMap.get(r.productId) ?? null,
+    };
+  });
 }

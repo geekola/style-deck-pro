@@ -773,18 +773,10 @@ export default function AdminBrandProfilePage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3">
-            {brand.status === "approved" && (
-              <button onClick={() => setShowReasonFor("suspended")}
-                className="text-sm border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20">
-                Suspend brand
-              </button>
-            )}
-            <button onClick={() => setShowDeleteConfirm(true)}
-              className="text-sm bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">
-              Delete brand
-            </button>
-          </div>
+          <button onClick={() => setShowDeleteConfirm(true)}
+            className="text-sm bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">
+            Delete brand
+          </button>
         )}
       </section>
 

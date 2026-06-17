@@ -4,155 +4,219 @@ import {
   getBrandProducts,
   getBrandOrders,
   getBrandById,
-  getBrandPendingOrders,
-  getBrandRecentSaves,
-  getBrandRecentAccessGrants,
+  getBrandSwipeStats,
+  getBrandProductPerformance,
+  getBrandPendingGifts,
+  getBrandGiftingConversions,
 } from "@/lib/db/queries/brand";
 import { DashboardShipButton } from "./dashboard-ship-button";
 
-const ACTIVITY_LIMIT = 6;
+const ACCESS_POLICY_BADGE: Record<string, { label: string; class: string }> = {
+  open: { label: "Open Access", class: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800" },
+  selective: { label: "Selective Access", class: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800" },
+  invite_only: { label: "Invite Only", class: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800" },
+};
+
+function fmtDate(d: Date) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function fmtDaysAgo(d: Date) {
+  const days = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
 
 export default async function BrandDashboardPage() {
   const { brandId } = await requireBrandAdminPage();
-  const [brand, catalogItems, orders, pendingOrders, recentSaves, recentAccess] =
+
+  const [brand, catalogItems, orders, swipeStats, topProducts, pendingGifts, giftingConversions] =
     await Promise.all([
       getBrandById(brandId),
       getBrandProducts(brandId),
       getBrandOrders(brandId),
-      getBrandPendingOrders(brandId, 5),
-      getBrandRecentSaves(brandId, ACTIVITY_LIMIT),
-      getBrandRecentAccessGrants(brandId, ACTIVITY_LIMIT),
+      getBrandSwipeStats(brandId),
+      getBrandProductPerformance(brandId, 5),
+      getBrandPendingGifts(brandId, 6),
+      getBrandGiftingConversions(brandId),
     ]);
 
   const liveItems = catalogItems.filter((p) => p.visibility === "live").length;
   const pendingOrdersCount = orders.filter((o) => o.status === "pending").length;
+  const pendingOrdersValue = orders
+    .filter((o) => o.status === "pending")
+    .reduce((sum, o) => sum + (o.amountCents ?? 0), 0);
 
-  type ActivityItem =
-    | { type: "save"; id: string; productId: string; productName: string; customerName: string; at: Date }
-    | { type: "access"; id: string; customerName: string; at: Date };
-
-  const activity: ActivityItem[] = [
-    ...recentSaves.map((s) => ({
-      type: "save" as const,
-      id: s.id,
-      productId: s.productId,
-      productName: s.productName,
-      customerName: s.customerName,
-      at: s.at,
-    })),
-    ...recentAccess.map((a) => ({
-      type: "access" as const,
-      id: a.id,
-      customerName: a.customerName,
-      at: a.at,
-    })),
-  ]
-    .sort((a, b) => b.at.getTime() - a.at.getTime())
-    .slice(0, ACTIVITY_LIMIT);
+  const accessBadge = ACCESS_POLICY_BADGE[brand?.accessPolicy ?? "open"] ?? ACCESS_POLICY_BADGE.open;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-2">{brand?.name}</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 capitalize mb-10">
-        {brand?.category} · {brand?.accessPolicy?.replace("_", " ")} access
-      </p>
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
-        <Stat label="Live catalog items" value={liveItems} href="/brand/products" />
-        <Stat label="Total catalog items" value={catalogItems.length} href="/brand/products" />
-        <Stat label="Pending orders" value={pendingOrdersCount} href="/brand/orders" />
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">{brand?.name}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">{brand?.category}</span>
+          <span className="text-gray-300 dark:text-gray-600">·</span>
+          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${accessBadge.class}`}>
+            {accessBadge.label}
+          </span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-10">
+        <Link
+          href="/brand/products"
+          className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+        >
+          <div className="text-2xl font-semibold text-gray-900 dark:text-white">{liveItems}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Live catalog items</div>
+        </Link>
+        <Link
+          href="/brand/products"
+          className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+        >
+          <div className="text-2xl font-semibold text-gray-900 dark:text-white">{catalogItems.length}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Total catalog items</div>
+        </Link>
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {swipeStats.rightSwipeRate != null ? `${swipeStats.rightSwipeRate}%` : "—"}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Right-swipe rate</div>
+        </div>
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div className="text-2xl font-semibold text-gray-900 dark:text-white">{giftingConversions}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">Gifting conversions</div>
+        </div>
+        <Link
+          href="/brand/orders"
+          className={`border rounded-xl p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
+            pendingOrdersCount > 0
+              ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10"
+              : "border-gray-200 dark:border-gray-700"
+          }`}
+        >
+          <div className={`text-2xl font-semibold ${pendingOrdersCount > 0 ? "text-amber-700 dark:text-amber-400" : "text-gray-900 dark:text-white"}`}>
+            {pendingOrdersCount}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-tight">
+            Pending orders
+            {pendingOrdersValue > 0 && (
+              <span className="block text-amber-600 dark:text-amber-500 font-medium mt-0.5">
+                ${(pendingOrdersValue / 100).toFixed(0)} value
+              </span>
+            )}
+          </div>
+        </Link>
+      </div>
+
+      {/* Bottom panels */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        {/* Product Performance */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Needs shipping
-          </h2>
-          {pendingOrders.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">Nothing to ship right now.</p>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+              Product Performance
+            </h2>
+            <Link href="/brand/products" className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              All items →
+            </Link>
+          </div>
+
+          {topProducts.length === 0 ? (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-8 text-center">
+              <p className="text-sm text-gray-400 dark:text-gray-500">No swipe data yet.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Performance appears once clients start discovering your catalog.</p>
+            </div>
           ) : (
             <ul className="space-y-2">
-              {pendingOrders.map((o) => (
-                <li
-                  key={o.id}
-                  className="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm"
-                >
-                  <Link href={`/brand/products/${o.productId}`} className="min-w-0 hover:underline">
-                    <div className="font-medium truncate">{o.productName}</div>
-                    <div className="text-gray-400 dark:text-gray-500 text-xs truncate">
-                      {o.customerName} ·{" "}
-                      {o.orderType === "gift" ? "Gift" : `$${(o.amountCents / 100).toFixed(2)}`}
+              {topProducts.map((p, i) => (
+                <li key={p.productId}>
+                  <Link
+                    href={`/brand/products/${p.productId}`}
+                    className="flex items-center gap-3 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                  >
+                    {/* Rank */}
+                    <span className="text-xs font-medium text-gray-400 w-4 shrink-0">{i + 1}</span>
+                    {/* Thumbnail */}
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0">
+                      {p.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full" />
+                      )}
+                    </div>
+                    {/* Name + bar */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.productName}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full"
+                            style={{ width: `${p.rightSwipeRate}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 w-8 text-right">
+                          {p.rightSwipeRate}%
+                        </span>
+                      </div>
                     </div>
                   </Link>
-                  <DashboardShipButton orderId={o.id} />
                 </li>
               ))}
             </ul>
           )}
-          {pendingOrdersCount > pendingOrders.length && (
-            <Link
-              href="/brand/orders"
-              className="text-xs text-gray-500 dark:text-gray-400 hover:underline mt-2 inline-block"
-            >
-              View all {pendingOrdersCount} →
-            </Link>
-          )}
         </section>
 
+        {/* Gifting & Fulfillment */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Recent activity
-          </h2>
-          {activity.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No recent activity yet.</p>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+              Gifting & Fulfillment
+            </h2>
+            <Link href="/brand/orders" className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              All orders →
+            </Link>
+          </div>
+
+          {pendingGifts.length === 0 ? (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-8 text-center">
+              <p className="text-sm text-gray-400 dark:text-gray-500">No pending gift requests.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">New requests will appear here for your review.</p>
+            </div>
           ) : (
             <ul className="space-y-2">
-              {activity.map((item) =>
-                item.type === "save" ? (
-                  <li key={`save-${item.id}`}>
-                    <Link
-                      href={`/brand/products/${item.productId}`}
-                      className="block border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/60"
-                    >
-                      <span>
-                        <span className="font-medium">{item.customerName}</span> saved{" "}
-                        <span className="font-medium">{item.productName}</span>
-                      </span>
-                      <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
-                        {item.at.toLocaleDateString()}
-                      </div>
-                    </Link>
-                  </li>
-                ) : (
-                  <li
-                    key={`access-${item.id}`}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 text-sm"
+              {pendingGifts.map((g) => (
+                <li key={g.id}>
+                  <Link
+                    href={`/brand/orders`}
+                    className="flex items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
                   >
-                    <span>
-                      <span className="font-medium">{item.customerName}</span> was granted access
-                    </span>
-                    <div className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
-                      {item.at.toLocaleDateString()}
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        <span className="font-medium">{g.customerName}</span>
+                        <span className="text-gray-500 dark:text-gray-400"> · {g.productName}</span>
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        Gift request · {fmtDaysAgo(g.createdAt)}
+                      </p>
                     </div>
-                  </li>
-                )
-              )}
+                    <span className="shrink-0 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700 px-2 py-0.5 rounded-full">
+                      Pending
+                    </span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </section>
+
       </div>
     </div>
-  );
-}
-
-function Stat({ label, value, href }: { label: string; value: number; href: string }) {
-  return (
-    <Link
-      href={href}
-      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors block"
-    >
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</div>
-    </Link>
   );
 }
