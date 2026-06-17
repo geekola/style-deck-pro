@@ -57,7 +57,7 @@ export default function ImportProductsPage() {
     <div className="max-w-2xl mx-auto px-6 py-10">
       <div className="flex items-center gap-3 mb-8">
         <Link href="/brand/products" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">
-          ← Products
+          ← Catalog Items
         </Link>
         <span className="text-gray-300 dark:text-gray-600">/</span>
         <h1 className="text-2xl font-semibold">Import from CSV</h1>

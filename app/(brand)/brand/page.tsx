@@ -14,7 +14,7 @@ const ACTIVITY_LIMIT = 6;
 
 export default async function BrandDashboardPage() {
   const { brandId } = await requireBrandAdminPage();
-  const [brand, products, orders, pendingOrders, recentSaves, recentAccess] =
+  const [brand, catalogItems, orders, pendingOrders, recentSaves, recentAccess] =
     await Promise.all([
       getBrandById(brandId),
       getBrandProducts(brandId),
@@ -24,7 +24,7 @@ export default async function BrandDashboardPage() {
       getBrandRecentAccessGrants(brandId, ACTIVITY_LIMIT),
     ]);
 
-  const activeProducts = products.filter((p) => p.active).length;
+  const liveItems = catalogItems.filter((p) => p.visibility === "live").length;
   const pendingOrdersCount = orders.filter((o) => o.status === "pending").length;
 
   type ActivityItem =
@@ -58,8 +58,8 @@ export default async function BrandDashboardPage() {
       </p>
 
       <div className="grid grid-cols-3 gap-4 mb-10">
-        <Stat label="Active products" value={activeProducts} href="/brand/products" />
-        <Stat label="Total products" value={products.length} href="/brand/products" />
+        <Stat label="Live catalog items" value={liveItems} href="/brand/products" />
+        <Stat label="Total catalog items" value={catalogItems.length} href="/brand/products" />
         <Stat label="Pending orders" value={pendingOrdersCount} href="/brand/orders" />
       </div>
 

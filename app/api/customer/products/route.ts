@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       : eq(brands.accessPolicy, "open");
 
   const baseConditions = [
-    eq(products.active, true),
+    eq(products.visibility, "live"),
     eq(brands.status, "approved"),
     accessCondition!,
     ...(category ? [eq(products.category, category)] : []),

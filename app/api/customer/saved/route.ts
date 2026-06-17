@@ -55,7 +55,7 @@ export async function GET() {
       brandId: products.brandId,
       brandName: brands.name,
       brandLogoUrl: brands.logoUrl,
-      active: products.active,
+      visibility: products.visibility,
     })
     .from(savedProducts)
     .innerJoin(products, eq(savedProducts.productId, products.id))

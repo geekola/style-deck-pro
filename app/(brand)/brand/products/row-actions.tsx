@@ -13,14 +13,14 @@ export function RowActions({ row }: { row: ProductRow }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function toggleActive() {
+  async function setVisibility(visibility: "draft" | "hidden" | "live") {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/brand/products/${row.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: !row.active }),
+        body: JSON.stringify({ visibility }),
       });
 
       if (!res.ok) {
@@ -70,10 +70,7 @@ export function RowActions({ row }: { row: ProductRow }) {
             <div className="flex gap-2 justify-end">
               <button
                 disabled={loading}
-                onClick={() => {
-                  setMode("none");
-                  setError(null);
-                }}
+                onClick={() => { setMode("none"); setError(null); }}
                 className="border border-gray-200 dark:border-gray-700 text-xs px-3 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/60 disabled:opacity-50"
               >
                 Cancel
@@ -92,15 +89,33 @@ export function RowActions({ row }: { row: ProductRow }) {
     );
   }
 
-  const actions: RowAction[] = [
-    {
-      key: "toggle-active",
-      label: row.active ? "Deactivate" : "Activate",
-      onClick: toggleActive,
+  const actions: RowAction[] = [];
+
+  if (row.visibility !== "live") {
+    actions.push({
+      key: "publish",
+      label: "Go Live",
+      onClick: () => setVisibility("live"),
       disabled: loading,
-    },
-    { key: "delete", label: "Delete", onClick: () => setMode("delete"), variant: "danger" },
-  ];
+    });
+  }
+  if (row.visibility !== "hidden") {
+    actions.push({
+      key: "hide",
+      label: "Hide",
+      onClick: () => setVisibility("hidden"),
+      disabled: loading,
+    });
+  }
+  if (row.visibility !== "draft") {
+    actions.push({
+      key: "draft",
+      label: "Set to Draft",
+      onClick: () => setVisibility("draft"),
+      disabled: loading,
+    });
+  }
+  actions.push({ key: "delete", label: "Delete", onClick: () => setMode("delete"), variant: "danger" });
 
   return (
     <div className="relative inline-block text-left">

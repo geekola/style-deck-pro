@@ -11,26 +11,27 @@ export default async function BrandProductsPage() {
     id: p.id,
     name: p.name,
     category: p.category,
-    itemType: p.itemType,
+    itemType: p.itemType as "gift" | "purchase",
     description: p.description,
     price: p.price,
     costPrice: p.costPrice,
     returnPolicy: p.returnPolicy,
-    active: p.active,
+    visibility: p.visibility as "draft" | "hidden" | "live",
     createdAt: p.createdAt.toISOString(),
     thumbnailUrl: p.thumbnailUrl,
   }));
 
   const stats = {
     total: rows.length,
-    active: rows.filter((p) => p.active).length,
-    inactive: rows.filter((p) => !p.active).length,
+    live: rows.filter((p) => p.visibility === "live").length,
+    draft: rows.filter((p) => p.visibility === "draft").length,
+    hidden: rows.filter((p) => p.visibility === "hidden").length,
   };
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold">Products</h1>
+        <h1 className="text-2xl font-semibold">Catalog Items</h1>
         <div className="flex gap-3">
           <Link
             href="/brand/products/import"
@@ -42,7 +43,7 @@ export default async function BrandProductsPage() {
             href="/brand/products/new"
             className="bg-black dark:bg-white dark:text-black text-white text-sm px-4 py-2 rounded-md hover:bg-gray-800"
           >
-            Add product
+            Add item
           </Link>
         </div>
       </div>

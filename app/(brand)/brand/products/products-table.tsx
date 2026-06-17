@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { RowActions } from "./row-actions";
 import { StatCard, StatCardGrid } from "@/components/admin/stat-card";
 import { Tabs } from "@/components/admin/tabs";
@@ -19,18 +18,19 @@ export type ProductRow = {
   price: number | null;
   costPrice: number | null;
   returnPolicy: string | null;
-  active: boolean;
+  visibility: "draft" | "hidden" | "live";
   createdAt: string;
   thumbnailUrl: string | null;
 };
 
-type Tab = "all" | "active" | "inactive";
+type Tab = "all" | "live" | "draft" | "hidden";
 type SortKey = "name" | "category" | "price" | "createdAt";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "live", label: "Live" },
+  { value: "draft", label: "Draft" },
+  { value: "hidden", label: "Hidden" },
 ];
 
 const CATEGORY_FILTERS = [
@@ -49,12 +49,27 @@ const TYPE_FILTERS = [
 
 const PAGE_SIZE = 10;
 
+const VISIBILITY_BADGE: Record<ProductRow["visibility"], { label: string; class: string }> = {
+  live: {
+    label: "Live",
+    class: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
+  },
+  draft: {
+    label: "Draft",
+    class: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
+  },
+  hidden: {
+    label: "Hidden",
+    class: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400",
+  },
+};
+
 export function ProductsTable({
   rows,
   stats,
 }: {
   rows: ProductRow[];
-  stats: { total: number; active: number; inactive: number };
+  stats: { total: number; live: number; draft: number; hidden: number };
 }) {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<Tab>("all");
@@ -68,7 +83,7 @@ export function ProductsTable({
     let result = rows;
 
     if (tab !== "all") {
-      result = result.filter((r) => (tab === "active" ? r.active : !r.active));
+      result = result.filter((r) => r.visibility === tab);
     }
 
     if (categoryFilter !== "all") {
@@ -115,46 +130,27 @@ export function ProductsTable({
 
   return (
     <div>
-      <StatCardGrid cols={3}>
+      <StatCardGrid cols={4}>
         <StatCard label="Total" value={stats.total} active={tab === "all"} onClick={() => setTabAndReset("all")} />
-        <StatCard
-          label="Active"
-          value={stats.active}
-          active={tab === "active"}
-          onClick={() => setTabAndReset("active")}
-          accent="green"
-        />
-        <StatCard
-          label="Inactive"
-          value={stats.inactive}
-          active={tab === "inactive"}
-          onClick={() => setTabAndReset("inactive")}
-        />
+        <StatCard label="Live" value={stats.live} active={tab === "live"} onClick={() => setTabAndReset("live")} accent="green" />
+        <StatCard label="Draft" value={stats.draft} active={tab === "draft"} onClick={() => setTabAndReset("draft")} />
+        <StatCard label="Hidden" value={stats.hidden} active={tab === "hidden"} onClick={() => setTabAndReset("hidden")} accent="amber" />
       </StatCardGrid>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <SearchInput
           placeholder="Search by name..."
           value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
+          onChange={(v) => { setSearch(v); setPage(1); }}
         />
         <FilterSelect
           value={categoryFilter}
-          onChange={(v) => {
-            setCategoryFilter(v);
-            setPage(1);
-          }}
+          onChange={(v) => { setCategoryFilter(v); setPage(1); }}
           options={CATEGORY_FILTERS}
         />
         <FilterSelect
           value={typeFilter}
-          onChange={(v) => {
-            setTypeFilter(v);
-            setPage(1);
-          }}
+          onChange={(v) => { setTypeFilter(v); setPage(1); }}
           options={TYPE_FILTERS}
         />
       </div>
@@ -168,7 +164,7 @@ export function ProductsTable({
             <SortableHeader label="Category" sortKey="category" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
             <th className="pb-3 font-medium">Type</th>
             <SortableHeader label="Price" sortKey="price" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
-            <th className="pb-3 font-medium">Status</th>
+            <th className="pb-3 font-medium">Visibility</th>
             <SortableHeader label="Created" sortKey="createdAt" currentKey={sortKey} dir={sortDir} onSort={toggleSort} />
             <th className="pb-3" />
           </tr>
@@ -180,7 +176,7 @@ export function ProductsTable({
           {pageRows.length === 0 && (
             <tr>
               <td colSpan={7} className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm">
-                No products found.
+                No catalog items found.
               </td>
             </tr>
           )}
@@ -200,6 +196,7 @@ export function ProductsTable({
 
 function Row({ row }: { row: ProductRow }) {
   const router = useRouter();
+  const badge = VISIBILITY_BADGE[row.visibility];
 
   return (
     <tr
@@ -210,11 +207,11 @@ function Row({ row }: { row: ProductRow }) {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
             {row.thumbnailUrl ? (
-              <Image
+              /* Plain img avoids next/image domain-whitelist requirement for thumbnails */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={row.thumbnailUrl}
                 alt={row.name}
-                width={40}
-                height={40}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -232,23 +229,14 @@ function Row({ row }: { row: ProductRow }) {
         {row.price != null ? `$${(row.price / 100).toFixed(2)}` : "--"}
       </td>
       <td className="py-3">
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            row.active
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-          }`}
-        >
-          {row.active ? "Active" : "Inactive"}
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${badge.class}`}>
+          {badge.label}
         </span>
       </td>
       <td className="py-3 text-gray-500 dark:text-gray-400 text-xs">
         {new Date(row.createdAt).toLocaleDateString()}
       </td>
-      <td
-        className="py-3 text-right"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <RowActions row={row} />
       </td>
     </tr>

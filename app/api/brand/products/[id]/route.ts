@@ -12,10 +12,13 @@ const updateSchema = z.object({
   category: z.enum(["casual", "business", "formal", "custom"]).optional(),
   itemType: z.enum(["gift", "purchase"]).optional(),
   description: z.string().max(2000).optional(),
-  costPrice: z.number().int().positive().optional(),
-  price: z.number().int().positive().optional(),
+  costPrice: z.number().int().nonnegative().optional().nullable(),
+  price: z.number().int().nonnegative().optional().nullable(),
   returnPolicy: z.string().max(1000).optional(),
-  active: z.boolean().optional(),
+  visibility: z.enum(["draft", "hidden", "live"]).optional(),
+  giftable: z.boolean().optional(),
+  monthlyGiftLimit: z.number().int().nonnegative().optional().nullable(),
+  approvalRequired: z.boolean().optional(),
 });
 
 export async function GET(
@@ -29,14 +32,16 @@ export async function GET(
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const images = await db
-    .select({ id: productImages.id, url: productImages.url, hero: productImages.hero, displayOrder: productImages.displayOrder })
+    .select({
+      id: productImages.id,
+      url: productImages.url,
+      hero: productImages.hero,
+      displayOrder: productImages.displayOrder,
+    })
     .from(productImages)
     .where(eq(productImages.productId, id))
     .orderBy(productImages.displayOrder);
 
-  // Note: costPrice is included here — this endpoint is brand-admin scoped
-  // (requireBrandAdmin), so the brand viewing/editing its own product cost
-  // is expected. It must never be exposed via customer-facing routes.
   return NextResponse.json({ ...product, images });
 }
 
@@ -64,10 +69,11 @@ export async function PUT(
     .set({ ...parsed.data, updatedAt: new Date() })
     .where(and(eq(products.id, id), eq(products.brandId, brandId)));
 
-  // Determine audit action
   let action: string = AuditAction.PRODUCT_UPDATED;
-  if (parsed.data.active === true) action = AuditAction.PRODUCT_ACTIVATED;
-  if (parsed.data.active === false) action = AuditAction.PRODUCT_DEACTIVATED;
+  if (parsed.data.visibility === "live") action = AuditAction.PRODUCT_ACTIVATED;
+  if (parsed.data.visibility === "hidden" || parsed.data.visibility === "draft") {
+    action = AuditAction.PRODUCT_DEACTIVATED;
+  }
 
   await audit({
     actorId: session.user.id,

@@ -102,7 +102,7 @@ export default function NewProductPage() {
           href="/brand/products"
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1 mb-3"
         >
-          <span>&#8592;</span> Products
+          <span>&#8592;</span> Catalog Items
         </Link>
         <h1 className="text-2xl font-semibold">New product</h1>
       </div>

@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     const [product] = await db
       .select()
       .from(products)
-      .where(and(eq(products.id, productId), eq(products.active, true)))
+      .where(and(eq(products.id, productId), eq(products.visibility, "live")))
       .limit(1);
 
     if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
   const purchaseProducts = await db
     .select()
     .from(products)
-    .where(and(inArray(products.id, productIds), eq(products.active, true)));
+    .where(and(inArray(products.id, productIds), eq(products.visibility, "live")));
 
   if (purchaseProducts.length !== productIds.length) {
     return NextResponse.json({ error: "One or more products not found" }, { status: 404 });

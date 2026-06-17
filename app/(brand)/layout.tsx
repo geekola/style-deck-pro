@@ -3,7 +3,7 @@ import { getPlatformLogoUrl } from "@/lib/db/queries/platform-settings";
 
 const links = [
   { href: "/brand", label: "Dashboard", exact: true },
-  { href: "/brand/products", label: "Products" },
+  { href: "/brand/products", label: "Catalog Items" },
   { href: "/brand/orders", label: "Orders" },
   { href: "/brand/gifting", label: "Gifting" },
   { href: "/brand/customers", label: "Clients" },

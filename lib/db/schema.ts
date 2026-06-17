@@ -60,6 +60,12 @@ export const brandCategoryEnum = pgEnum("brand_category", [
 
 export const productTypeEnum = pgEnum("product_type", ["gift", "purchase"]);
 
+export const productVisibilityEnum = pgEnum("product_visibility", [
+  "draft",
+  "hidden",
+  "live",
+]);
+
 export const orderStatusEnum = pgEnum("order_status", ["pending", "shipped"]);
 
 export const orderTypeEnum = pgEnum("order_type", ["purchase", "gift"]);
@@ -300,13 +306,21 @@ export const products = pgTable(
     costPrice: integer("cost_price"),
     price: integer("price"),
     returnPolicy: text("return_policy"),
-    active: boolean("active").notNull().default(true),
+    // Visibility replaces the old `active` boolean.
+    // draft  = being prepared, not visible to customers
+    // hidden = intentionally hidden from discovery
+    // live   = visible in customer discovery
+    visibility: productVisibilityEnum("visibility").notNull().default("live"),
+    // Gift settings
+    giftable: boolean("giftable").notNull().default(true),
+    monthlyGiftLimit: integer("monthly_gift_limit"),
+    approvalRequired: boolean("approval_required").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
     index("products_brand_id_idx").on(t.brandId),
-    index("products_active_idx").on(t.active),
+    index("products_visibility_idx").on(t.visibility),
   ]
 );
 
