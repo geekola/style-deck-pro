@@ -208,6 +208,14 @@ export const brands = pgTable("brands", {
     postalCode: string;
     country: string;
   }>(),
+  fulfillmentAddress: jsonb("fulfillment_address").$type<{
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
