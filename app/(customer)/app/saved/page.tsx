@@ -14,7 +14,7 @@ type SavedProduct = {
   brandId: string;
   brandName: string;
   brandLogoUrl: string | null;
-  active: boolean;
+  visibility: "draft" | "hidden" | "live";
   heroImage: string | null;
 };
 
@@ -54,11 +54,7 @@ export default function SavedPage() {
   function toggleSelected(item: SavedProduct) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(item.id)) {
-        next.delete(item.id);
-      } else {
-        next.add(item.id);
-      }
+      if (next.has(item.id)) { next.delete(item.id); } else { next.add(item.id); }
       return next;
     });
   }
@@ -67,7 +63,6 @@ export default function SavedPage() {
   const selectedBrandId = selectedItems[0]?.brandId ?? null;
   const selectedTotal = selectedItems.reduce((sum, i) => sum + (i.price ?? 0), 0);
 
-  // Unique brands derived from saved items
   const brands = Array.from(
     new Map(items.map((i) => [i.brandId, i.brandName])).entries()
   ).map(([id, name]) => ({ id, name }));
@@ -83,12 +78,9 @@ export default function SavedPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950 max-w-lg mx-auto">
       {/* Nav */}
       <nav className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-black/6 dark:border-white/10 px-5 py-3.5 flex items-center justify-between">
-        <Link href="/app/discover" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white dark:text-white">← Discover</Link>
+        <Link href="/app/discover" className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white">← Discover</Link>
         <span className="text-xl font-semibold tracking-tight">Saved</span>
-        <button
-          onClick={toggleSelectMode}
-          className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white"
-        >
+        <button onClick={toggleSelectMode} className="text-sm text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white">
           {selectMode ? "Cancel" : "Select"}
         </button>
       </nav>
@@ -153,7 +145,8 @@ export default function SavedPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 px-5 pt-3">
                   {catItems.map((item) => {
-                    const eligible = item.active && item.itemType === "purchase" && item.price != null;
+                    const isLive = item.visibility === "live";
+                    const eligible = isLive && item.itemType === "purchase" && item.price != null;
                     const isSelected = selected.has(item.id);
                     const disabled =
                       eligible &&
@@ -169,8 +162,8 @@ export default function SavedPage() {
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">✦</div>
                           )}
-                          {!item.active && (
-                            <div className="absolute inset-0 bg-white dark:bg-gray-950/70 flex items-center justify-center">
+                          {!isLive && (
+                            <div className="absolute inset-0 bg-white/70 dark:bg-gray-950/70 flex items-center justify-center">
                               <span className="text-xs text-gray-400 dark:text-gray-500">Unavailable</span>
                             </div>
                           )}
@@ -205,7 +198,7 @@ export default function SavedPage() {
                           <p className="text-sm font-medium leading-tight">{item.name}</p>
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.brandName}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            {item.active && (
+                            {isLive && (
                               <Link
                                 href={item.itemType === "gift" ? `/app/gift/${item.id}` : `/app/checkout/${item.id}`}
                                 className="flex-1 text-center text-xs bg-black dark:bg-white dark:text-black text-white rounded-lg py-1.5 font-medium"
