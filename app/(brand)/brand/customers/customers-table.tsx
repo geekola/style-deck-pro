@@ -52,10 +52,12 @@ const PAGE_SIZE = 10;
 export function CustomersTable({
   rows,
   stats,
+  accessPolicy,
   onToggleAccess,
 }: {
   rows: CustomerRow[];
   stats: { total: number; withAccess: number; noAccess: number };
+  accessPolicy: "open" | "selective" | "invite_only";
   onToggleAccess: (customerId: string, grant: boolean) => void;
 }) {
   const [search, setSearch] = useState("");
@@ -116,16 +118,28 @@ export function CustomersTable({
     setPage(1);
   }
 
+  const isOpen = accessPolicy === "open";
+
   if (rows.length === 0) {
     return (
       <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-        No clients yet. Send an invite to get started.
+        {accessPolicy === "invite_only"
+          ? "No clients yet. Send an invite to get started."
+          : accessPolicy === "selective"
+          ? "No clients yet. Grant access to customers to get started."
+          : "No clients registered yet."}
       </div>
     );
   }
 
   return (
     <div>
+      {isOpen && (
+        <div className="mb-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
+          Your policy is <strong>Open</strong> — all registered customers can discover your products. Individual access grants are stored but have no effect on discovery while this policy is active.
+        </div>
+      )}
+
       <StatCardGrid cols={3}>
         <StatCard label="Total" value={stats.total} active={tab === "all"} onClick={() => setTabAndReset("all")} />
         <StatCard
@@ -184,7 +198,7 @@ export function CustomersTable({
         </thead>
         <tbody className="divide-y">
           {pageRows.map((r) => (
-            <Row key={r.id} row={r} onToggleAccess={onToggleAccess} />
+            <Row key={r.id} row={r} accessPolicy={accessPolicy} onToggleAccess={onToggleAccess} />
           ))}
           {pageRows.length === 0 && (
             <tr>
@@ -203,9 +217,11 @@ export function CustomersTable({
 
 function Row({
   row,
+  accessPolicy,
   onToggleAccess,
 }: {
   row: CustomerRow;
+  accessPolicy: "open" | "selective" | "invite_only";
   onToggleAccess: (customerId: string, grant: boolean) => void;
 }) {
   const router = useRouter();
@@ -231,15 +247,21 @@ function Row({
       <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.type}</td>
       <td className="py-3 capitalize text-gray-600 dark:text-gray-400">{row.industry}</td>
       <td className="py-3">
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            row.hasAccess
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-          }`}
-        >
-          {row.hasAccess ? "Granted" : "No access"}
-        </span>
+        {accessPolicy === "open" ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">
+            Open access
+          </span>
+        ) : (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              row.hasAccess
+                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            {row.hasAccess ? "Granted" : "No access"}
+          </span>
+        )}
       </td>
       <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <ActionsMenu actions={actions} />
