@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { users, customers } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { UsersTable } from "./users-table";
+import { InviteButton } from "./invite-button";
 
 export default async function AdminUsersPage() {
   await requirePlatformAdminPage();
@@ -47,7 +48,10 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-8">Clients</h1>
+      <div className="flex items-center justify-between mb-8">
+      <h1 className="text-2xl font-semibold">Clients</h1>
+      <InviteButton />
+    </div>
       <UsersTable rows={tableRows} stats={stats} />
     </div>
   );
