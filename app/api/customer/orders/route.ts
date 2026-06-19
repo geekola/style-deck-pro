@@ -155,7 +155,31 @@ export async function POST(request: NextRequest) {
 
     const productCost = product.costPrice ?? 0;
 
-    if (!allowance || allowance.usedCents + productCost > allowance.amountCents) {
+    if (!allowance) {
+      return NextResponse.json(
+        { error: "Gift not available at this time" }, // vague by design
+        { status: 403 }
+      );
+    }
+
+    // Auto-reset calendar allowances when the period has rolled over.
+    // Calendar periods reset monthly on the same day-of-month as periodStart.
+    let effectiveUsed = allowance.usedCents;
+    if (allowance.periodType === "calendar") {
+      const start = new Date(allowance.periodStart);
+      const now = new Date();
+      const currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), start.getDate());
+      if (currentPeriodStart > start) {
+        // Period has rolled; reset usage
+        await db
+          .update(giftingAllowances)
+          .set({ usedCents: 0, periodStart: currentPeriodStart })
+          .where(eq(giftingAllowances.id, allowance.id));
+        effectiveUsed = 0;
+      }
+    }
+
+    if (effectiveUsed + productCost > allowance.amountCents) {
       return NextResponse.json(
         { error: "Gift not available at this time" }, // vague by design
         { status: 403 }
@@ -179,7 +203,7 @@ export async function POST(request: NextRequest) {
     // Deduct from allowance
     await db
       .update(giftingAllowances)
-      .set({ usedCents: allowance.usedCents + productCost })
+      .set({ usedCents: effectiveUsed + productCost })
       .where(eq(giftingAllowances.id, allowance.id));
 
     // Get brand for notification
@@ -273,7 +297,7 @@ export async function GET() {
     .where(eq(customers.userId, session.user.id))
     .limit(1);
 
-  if (!customer) return NextResponse.json([]);
+  if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
   const rows = await db
     .select({
@@ -281,9 +305,10 @@ export async function GET() {
       orderType: orders.orderType,
       status: orders.status,
       amountCents: orders.amountCents,
+      shippingAddress: orders.shippingAddress,
       trackingNumber: orders.trackingNumber,
       createdAt: orders.createdAt,
-      shippedAt: orders.shippedAt,
+      productId: products.id,
       productName: products.name,
       brandName: brands.name,
     })
