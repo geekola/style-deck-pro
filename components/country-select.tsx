@@ -33,23 +33,36 @@ export const COUNTRIES: { code: string; name: string }[] = [
 export function CountrySelect({
   name,
   defaultValue,
+  value,
+  onChange,
   required,
   className,
 }: {
   name: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   required?: boolean;
   className?: string;
 }) {
+  // Controlled mode when value prop is provided
+  if (value !== undefined) {
+    return (
+      <select name={name} required={required} className={className} value={value} onChange={onChange}>
+        <option value="" disabled>Select a country...</option>
+        {COUNTRIES.map((c) => (
+          <option key={c.code} value={c.code}>{c.name}</option>
+        ))}
+      </select>
+    );
+  }
+
+  // Uncontrolled mode
   return (
-    <select name={name} required={required} defaultValue={defaultValue ?? ""} className={className}>
-      <option value="" disabled>
-        Select a country...
-      </option>
+    <select name={name} required={required} className={className} defaultValue={defaultValue ?? ""}>
+      <option value="" disabled>Select a country...</option>
       {COUNTRIES.map((c) => (
-        <option key={c.code} value={c.code}>
-          {c.name}
-        </option>
+        <option key={c.code} value={c.code}>{c.name}</option>
       ))}
     </select>
   );

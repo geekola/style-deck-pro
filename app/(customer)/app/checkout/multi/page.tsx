@@ -10,7 +10,7 @@ type SavedProduct = {
   price: number | null;
   brandName: string;
   itemType: "gift" | "purchase";
-  active: boolean;
+  visibility: "draft" | "hidden" | "live";
 };
 
 type ShipToAddress = {

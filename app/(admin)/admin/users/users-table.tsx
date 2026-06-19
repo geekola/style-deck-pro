@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { Pagination } from "@/components/admin/pagination";
 import { SearchInput, FilterSelect } from "@/components/admin/search-input";
 import { SortableHeader, type SortDir } from "@/components/admin/sortable-header";
+import { Tabs } from "@/components/admin/tabs";
 
 export type UserTableRow = {
   id: string;
@@ -19,11 +20,12 @@ export type UserTableRow = {
 };
 
 type SortKey = "name" | "joinedAt";
+type StatusTab = "all" | "active" | "suspended";
 
-const STATUS_FILTERS = [
-  { value: "all", label: "Status: All" },
-  { value: "active", label: "Status: Active" },
-  { value: "suspended", label: "Status: Suspended" },
+const STATUS_TABS: { value: StatusTab; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "suspended", label: "Suspended" },
 ];
 
 const JOINED_FILTERS = [
@@ -40,10 +42,10 @@ export function UsersTable({
   stats,
 }: {
   rows: UserTableRow[];
-  stats: { total: number; active: number; suspended: number };
+  stats: { total: number; active: number; suspended: number; brandAdmins: number };
 }) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusTab, setStatusTab] = useState<StatusTab>("all");
   const [joinedFilter, setJoinedFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("joinedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -52,8 +54,8 @@ export function UsersTable({
   const filtered = useMemo(() => {
     let result = rows;
 
-    if (statusFilter !== "all") {
-      result = result.filter((r) => r.customerStatus === statusFilter);
+    if (statusTab !== "all") {
+      result = result.filter((r) => r.customerStatus === statusTab);
     }
 
     if (joinedFilter !== "all") {
@@ -75,7 +77,7 @@ export function UsersTable({
       else cmp = new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [rows, statusFilter, joinedFilter, search, sortKey, sortDir]);
+  }, [rows, statusTab, joinedFilter, search, sortKey, sortDir]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -93,10 +95,28 @@ export function UsersTable({
 
   return (
     <div>
-      <StatCardGrid cols={3}>
-        <StatCard label="Total clients" value={stats.total} />
-        <StatCard label="Active" value={stats.active} accent="green" />
-        <StatCard label="Suspended" value={stats.suspended} accent="red" />
+      <StatCardGrid cols={4}>
+        <StatCard
+          label="Total clients"
+          value={stats.total}
+          active={statusTab === "all"}
+          onClick={() => { setStatusTab("all"); setPage(1); }}
+        />
+        <StatCard
+          label="Active"
+          value={stats.active}
+          accent="green"
+          active={statusTab === "active"}
+          onClick={() => { setStatusTab("active"); setPage(1); }}
+        />
+        <StatCard
+          label="Suspended"
+          value={stats.suspended}
+          accent="red"
+          active={statusTab === "suspended"}
+          onClick={() => { setStatusTab("suspended"); setPage(1); }}
+        />
+        <StatCard label="Brand admins" value={stats.brandAdmins} />
       </StatCardGrid>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -109,14 +129,6 @@ export function UsersTable({
           }}
         />
         <FilterSelect
-          value={statusFilter}
-          onChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-          }}
-          options={STATUS_FILTERS}
-        />
-        <FilterSelect
           value={joinedFilter}
           onChange={(v) => {
             setJoinedFilter(v);
@@ -125,6 +137,12 @@ export function UsersTable({
           options={JOINED_FILTERS}
         />
       </div>
+
+      <Tabs
+        tabs={STATUS_TABS}
+        value={statusTab}
+        onChange={(v) => { setStatusTab(v); setPage(1); }}
+      />
 
       <table className="w-full text-sm">
         <thead>
