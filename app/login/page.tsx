@@ -57,10 +57,6 @@ function LoginForm() {
       return;
     }
 
-    // Email/password sign-in doesn't always follow callbackURL client-side --
-    // navigate manually through finalize to get sd_role set. Use a full page
-    // navigation (not router.push) since /api/auth/finalize is a Route Handler
-    // that issues a redirect -- router.push doesn't reliably follow it.
     window.location.href = finalizeUrl;
   }
 
@@ -79,7 +75,6 @@ function LoginForm() {
       provider: "google",
       callbackURL: finalizeUrl,
     });
-    // Google auth redirects away -- loading state stays until page unloads
   }
 
   return (
@@ -96,18 +91,8 @@ function LoginForm() {
           disabled={googleLoading || loading}
           className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/60 dark:bg-gray-900 transition-colors disabled:opacity-50 mb-6"
         >
-          {/* Google icon / loading spinner */}
           {googleLoading ? (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="animate-spin text-gray-400 dark:text-gray-500"
-            >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin text-gray-400 dark:text-gray-500">
               <path d="M12 2a10 10 0 0 1 10 10" />
             </svg>
           ) : (
@@ -130,10 +115,9 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Email/password */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
             <input
               type="email"
               required
@@ -154,7 +138,7 @@ function LoginForm() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -222,12 +206,16 @@ function LoginForm() {
           </Link>
         </p>
 
-        <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-2">
-          Brand?{" "}
-          <Link href="/brand/register" className="text-black dark:text-white underline underline-offset-2">
-            Apply to join
+        <div className="mt-8 border border-black/8 dark:border-white/10 rounded-xl p-5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">For brands</p>
+          <p className="text-sm font-medium mb-3">Reach a curated network of high-profile clients</p>
+          <Link
+            href="/brand/register"
+            className="inline-block text-sm font-medium px-5 py-2 rounded-lg border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+          >
+            Apply to join StyleDeck →
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { brands, users, brandAdmins } from "@/lib/db/schema";
+import { brands } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { audit, AuditAction } from "@/lib/audit";
+import { sendBrandApplicationEmail } from "@/lib/email";
 
 const schema = z.object({
   name: z.string().min(2).max(100),
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
     metadata: { name, adminEmail },
     ip: request.headers.get("x-forwarded-for") ?? undefined,
   });
+
+  // Send confirmation email (non-blocking)
+  sendBrandApplicationEmail({ to: adminEmail, brandName: name }).catch(console.error);
 
   return NextResponse.json({ id: brand.id, status: brand.status }, { status: 201 });
 }

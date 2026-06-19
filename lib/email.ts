@@ -54,13 +54,32 @@ export async function sendInviteEmail(params: {
   });
 }
 
+export async function sendBrandApplicationEmail(params: {
+  to: string;
+  brandName: string;
+}) {
+  return sendEmail({
+    from: FROM,
+    to: params.to,
+    subject: "StyleDeck: We received your application",
+    html: `
+      <p>Hi,</p>
+      <p>Thanks for applying to StyleDeck. We've received your application for <strong>${params.brandName}</strong> and our team will review it within 2–5 business days.</p>
+      <p>We'll email you at this address once a decision has been made.</p>
+      <p>— The StyleDeck team</p>
+    `,
+  });
+}
+
 export async function sendBrandStatusEmail(params: {
   to: string;
   brandName: string;
   status: "approved" | "rejected" | "suspended";
   reason?: string | null;
   reactivated?: boolean;
+  tempPassword?: string;
 }) {
+  const loginUrl = `${APP_URL}/login`;
   const reasonHtml = params.reason
     ? `<p style="color:#555">Reason: ${params.reason}</p>`
     : "";
@@ -70,16 +89,40 @@ export async function sendBrandStatusEmail(params: {
 
   if (params.reactivated) {
     subject = "StyleDeck: Your brand account has been reactivated";
-    body = `<p>Good news -- <strong>${params.brandName}</strong> has been reactivated on StyleDeck. You can log in to your brand portal as usual.</p>`;
+    body = `
+      <p>Good news — <strong>${params.brandName}</strong> has been reactivated on StyleDeck.</p>
+      <p>You can <a href="${loginUrl}">log in to your brand portal</a> as usual.</p>
+    `;
   } else if (params.status === "approved") {
     subject = "StyleDeck: Your brand application has been approved";
-    body = `<p>Congratulations -- <strong>${params.brandName}</strong> has been approved on StyleDeck. You can now log in and set up your brand portal.</p>`;
+    const credentialsHtml = params.tempPassword
+      ? `
+        <p>Your login credentials:</p>
+        <ul>
+          <li><strong>Email:</strong> ${params.to}</li>
+          <li><strong>Temporary password:</strong> <code>${params.tempPassword}</code></li>
+        </ul>
+        <p><strong>Please change your password after your first login.</strong></p>
+      `
+      : "";
+    body = `
+      <p>Congratulations — <strong>${params.brandName}</strong> has been approved on StyleDeck.</p>
+      ${credentialsHtml}
+      <p><a href="${loginUrl}">Log in to your brand portal →</a></p>
+    `;
   } else if (params.status === "suspended") {
     subject = "StyleDeck: Your brand account has been suspended";
-    body = `<p>Your brand account for <strong>${params.brandName}</strong> has been temporarily suspended. Your products are no longer visible to customers and portal access is paused.</p>${reasonHtml}<p>If you have questions, please contact StyleDeck support.</p>`;
+    body = `
+      <p>Your brand account for <strong>${params.brandName}</strong> has been temporarily suspended. Your products are no longer visible to customers and portal access is paused.</p>
+      ${reasonHtml}
+      <p>If you have questions, please contact StyleDeck support.</p>
+    `;
   } else {
     subject = "StyleDeck: Your brand application has been reviewed";
-    body = `<p>Thank you for applying. After review, we're unable to approve <strong>${params.brandName}</strong> at this time.</p>${reasonHtml}`;
+    body = `
+      <p>Thank you for applying. After review, we're unable to approve <strong>${params.brandName}</strong> at this time.</p>
+      ${reasonHtml}
+    `;
   }
 
   return sendEmail({

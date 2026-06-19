@@ -182,6 +182,7 @@ export async function PUT(
     status,
     reason,
     reactivated: wasReactivation,
+    tempPassword,
   }).catch(console.error);
 
   return NextResponse.json({
